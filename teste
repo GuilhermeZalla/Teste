@@ -1,0 +1,741 @@
+@extends('template.default')
+
+@section('icon', 'store')
+
+@section('content')
+    <div class="row">
+        <div class="col-md-12 text-center">
+
+            <?php if (isset($product)) { ?>
+            <h3>@lang('product-adregistration.title_edit')</h3>
+            <?php } else { ?>
+            <h3>@lang('product-adregistration.title')</h3>
+            <?php } ?>
+
+        </div>
+
+        <form method="post" action="{{ route('product.store') }}">
+            @csrf
+            <?php if (isset($product)) { ?>
+            <input type="hidden" name="product_id" value="{{ $product['id'] }}" />
+            <?php } ?>
+            <input type="hidden" name="email_user" value="{{ $session['email'] }}" />
+            <div class="col-sm-12" style="padding: 0px">
+                <div class="col-sm-6" style="">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <div class="icon-attach-money">
+                                <i class="material-icons">campaign</i>
+                            </div>
+                        </span>
+                        <div class="form-group form-group-state label-floating is-focused">
+                            <select id="type_ad" class="selectpicker" name="type_ad" data-live-search="true"
+                                data-live-search-normalize="true" data-style="select-with-transition"
+                                data-title="Tipo de anúncio" required>
+                                <option value="" selected style="display:none;"></option>
+                                <option value="Externo"
+                                    {{ isset($product['type_ad']) && $product['type_ad'] == 'Externo' ? 'selected' : '' }}>
+                                    Externo</option>
+                                <option value="Interno"
+                                    {{ isset($product['type_ad']) && $product['type_ad'] == 'Interno' ? 'selected' : '' }}>
+                                    Interno</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{-- Date --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-date">
+                            <i class="material-icons">today</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.date_begin') <small>(Obrigatório)</small></label>
+                        <input id="date_begin" name="date_begin" type="text" maxlength="10"
+                            class="form-control datepicker" data-format="DD/MM/YYYY" data-min-date="{{ date('Y-m-d') }}"
+                            value="{{ $product['date_begin'] ?? '' }}" required />
+                    </div>
+                </div>
+            </div>
+            {{-- Date Limit --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-date">
+                            <i class="material-icons">today</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.date_finish') <small>(Obrigatório)</small></label>
+                        <input id="date_finish" name="date_finish" type="text" maxlength="10"
+                            class="form-control datepicker" data-format="DD/MM/YYYY" data-min-date="{{ date('Y-m-d') }}"
+                            aria-required="true" value="{{ $product['date_finish'] ?? '' }}" required />
+                    </div>
+                </div>
+            </div>
+
+            {{-- Quantity --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-add">
+                            <i class="material-icons">add</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.quantity') <small>(Obrigatório)</small></label>
+                        <input id="quantity" name="quantity" type="number" class="form-control"
+                            value="{{ $product['quantity'] ?? '' }}" aria-required="true" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-name">
+                            <i class="material-icons">create</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.name') <small>(Obrigatório)</small></label>
+                        <input id="name" name="name" type="text" aria-required="true" class="form-control"
+                            maxlength="50" value="{{ $product['name'] ?? '' }}" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-description">
+                            <i class="material-icons">create</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.description') <small>(Obrigatório)</small></label>
+                        <input id="description" name="description" aria-required="true" type="text" class="form-control"
+                            maxlength="200" value="{{ $product['description'] ?? '' }}" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-attach-money">
+                            <i class="material-icons">attach_money</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.value') <small>(Obrigatório)</small></label>
+                        <input id="value" name="value" type="text" class="form-control money"
+                            aria-required="true" value="{{ $product['value'] ?? '' }}" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 share">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="material-icons">share</i>
+                    </span>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="type" id="sponsor"
+                            value="Patrocinador" checked>
+                        <label class="form-check-label" for="sponsor">
+                            Patrocinador
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="type" id="partner" value="Parceiro">
+                        <label class="form-check-label" for="parceiro">
+                            Parceiro
+                        </label>
+                    </div>
+                </div>
+
+                <div id="sponsor_radio_type" class="input-group sponsor-partner">
+                    <span class="input-group-addon">
+                        <i class="material-icons">list</i>
+                    </span>
+                    <div class="form-group form-group-state label-floating is-focused">
+                        <label for="sponsor_type" class="sr-only">@lang('product-adregistration.sponsors-list')</label>
+                        <select id="sponsor_type" name="sponsor_type" class="selectpicker" data-live-search="true"
+                            data-live-search-normalize="true" data-style="select-with-transition"
+                            data-title="@lang('product-adregistration.sponsors-list')" required>
+                            <option value="" disabled selected style="display:none;">@lang('product-adregistration.sponsors-list')</option>
+                            @foreach ($sponsors as $sponsor)
+                                <option value="{{ $sponsor['id'] }}">{{ $sponsor['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <input type="hidden" name="identificator_name" value="{{ $sponsor['name'] ?? '' }}">
+                </div>
+
+                <div id="partner_radio_type" class="input-group sponsor-partner">
+                    <span class="input-group-addon">
+                        <i class="material-icons">list</i>
+                    </span>
+                    <div class="form-group form-group-state label-floating is-focused">
+                        <label for="partner_type" class="sr-only">@lang('product-adregistration.partners-list')</label>
+                        <select id="partner_type" name="partner_type" class="selectpicker" data-live-search="true"
+                            data-live-search-normalize="true" data-style="select-with-transition"
+                            data-title="@lang('product-adregistration.partners-list')" required>
+                            <option value="" selected style="display:none;"></option>
+                            @foreach ($partners as $partner)
+                                <option value="{{ $partner['id'] }}">{{ $partner['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <input type="hidden" name="identificator_name" value="{{ $partners['name'] ?? '' }}">
+                </div>
+
+            </div>
+
+            {{-- Modal --}}
+
+            <div class="col-sm-12" style="padding: 0px;">
+                <div class="col-sm-6" style="margin-left:-34px">
+                    <div class="input-group">
+                        <div class="form-group" style="padding-top: 22px;">
+                            <input type="checkbox" id="show-personal-data" class="form-control"
+                                style="display: none; height: 20px; position: absolute; left: -145px;">
+                            <label for="show-personal-data" id="show-personal-data-label"
+                                style="display: none; padding-left: 85px; padding-top:8px;">Deseja publicar o anúncio com
+                                seus dados pessoais?</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="company-fields" style="display: none;">
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">description</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">CNPJ</label>
+                            <input type="text" name="cnpj" id="cnpj" class="form-control"
+                                oninput="formatCNPJ(this)" onkeyup="limitCharacters(this)"
+                                value="{{ $product['cnpj'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">business</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Nome da Empresa</label>
+                            <input type="text" name="company_name" id="company-name" class="form-control"
+                                value="{{ $product['company_name'] ?? '' }}" maxlength="70">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">work</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Ramo de Atividade</label>
+                            <input type="text" name="activity_area" id="business-activity" class="form-control"
+                                value="{{ $product['activity_area'] ?? '' }}" maxlength="80">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">create</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Telefone Fixo</label>
+                            <input type="text" name=" fixed_phone" id="fixed-phone" class="form-control"
+                                oninput="formatPhone(this)" value="{{ $product['fixed_phone'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">smartphone</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Celular</label>
+                            <input type="text" name="cellphone" id="whatsapp-cellphone" class="form-control"
+                                oninput="formatCellphone(this)" value="{{ $product['cellphone'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">email</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">E-mail</label>
+                            <input type="email" name="email" id="email" class="form-control"
+                                value="{{ $product['email'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-sm-6 col-cover">
+                <div class="input-group input-group-cover">
+                    <div class="form-group">
+                        <i class="material-icons cover-icon">image</i>
+                        <span class="cover-title">@lang('product-adregistration.form.img_url')</span>
+                        <div class="cover-wrapper">
+                            <img id="cover-img" class="cover-img" src="" />
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-toggle-picture" class="btn btn-primary btn-simple btn-add-picture">
+                    <i class="material-icons">add_photo_alternate</i>
+                    @lang('product-adregistration.form.add_product_pictures')
+                </button>
+
+                <button type="button" id="btn-remove-picture" class="btn btn-primary btn-simple btn-remove-picture"
+                    style="display:none;">
+                    <i class="material-icons">delete_forever</i>
+                    @lang('product-adregistration.form.remove_product_pictures')
+                </button>
+
+                <input type="file" name="img_url" id="img_url" class="file-cover wizard-picture"
+                    data-preview="#cover-img" data-default="" required>
+
+                <input type="hidden" id="remove_cover_picture" name="remove_cover_picture"
+                    class="wizard-picture-remove" value="false" data-dispatch="#btn-remove-picture" />
+            </div>
+
+            <div class="col-md-12 text-right">
+
+                <button id="finishButton" type="submit" class="btn btn-primary">Finalizar</button>
+
+            </div>
+        </form>
+
+        {{-- Banners --}}
+        <div class="col-md-12 text-dark p-4">
+            <div class="col-md-4 container_cards">
+                {{-- Card Available --}}
+                <div class="card card-stats">
+                    <div class="card-header" data-background-color="primary">
+                        <i class="material-icons">inventory</i>
+                    </div>
+                    <div class="card-content">
+                        <p class="category">@lang('product-adregistration.product_available')</p>
+                        <h2 id="quantity-header" class="card-title fw-bold">
+                            @php
+                                if (is_numeric($total_products)) {
+                                    echo $total_products;
+                                } else {
+                                    echo '-';
+                                }
+                            @endphp
+                            <h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                {{-- Card Sold --}}
+                <div class="card card-stats">
+                    <div class="card-header" data-background-color="primary">
+                        <i class="material-icons">shopping_cart_checkout</i>
+                    </div>
+                    <div class="card-content">
+                        <p class="category">@lang('product-adregistration.product_sold')</p>
+                        <h2 class="card-title fw-bold">@php echo $history_sales; @endphp<h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                {{-- Card Balance --}}
+                <div class="card card-stats">
+                    <div class="card-header" data-background-color="primary"><i
+                            class="material-symbols-outlined">inventory</i>
+                    </div>
+                    <div class="card-content">
+                        <p class="category">@lang('product-adregistration.product_balance')</p>
+                        <h2 class="card-title fw-bold">
+                            @php
+                                if (is_numeric($total_products) && is_numeric($history_sales)) {
+                                    $available = $total_products - $history_sales;
+                                    echo $available === 0 ? '-' : $available;
+                                } else {
+                                    echo '-';
+                                }
+                            @endphp<h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+@endsection
+
+@section('style')
+    <style>
+        .share {
+            margin-top: 20px;
+        }
+
+        .file-cover {
+            visibility: hidden !important;
+        }
+
+        .cover-img {
+            max-width: 300px !important;
+        }
+    </style>
+@endsection
+
+@section('script')
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#type_ad').on('change', function() {
+                if ($(this).val() == 'Externo') {
+                    $('.sponsor-partner select').prop('required', true);
+                } else {
+                    $('.sponsor-partner select').prop('required', false);
+                }
+            });
+        });
+
+        function validationMandatoryFields() {
+            let invalidField = '';
+
+            const adType = document.getElementById('type_ad').value;
+            const isInternal = (adType === 'Interno');
+
+            let name = $("#name").val();
+            let dateStart = $("#date_begin").val();
+            let dateFinish = $("#date_finish").val();
+            let quantity = $("#quantity").val();
+            let value = $("#value").val();
+            let description = $("#description").val();
+            const imageFile = $("#img_url")[0].files[0];
+
+            if (isInternal) {
+                $("#email").prop('required', true);
+                $("#whatsapp-cellphone").prop('required', true);
+                $("#fixed-phone").prop('required', true);
+                $("#business-activity").prop('required', true);
+                $("#company-name").prop('required', true);
+                $("#cnpj").prop('required', true);
+
+                var email = $("#email").val();
+                var whatsappcellphone = $("#whatsapp-cellphone").val();
+                var fixedphone = $("#fixed-phone").val();
+                var businessactivity = $("#business-activity").val();
+                var companyname = $("#company-name").val();
+                var cnpj = $("#cnpj").val();
+
+            } else {
+                $("#email").prop('required', false);
+                $("#whatsapp-cellphone").prop('required', false);
+                $("#fixed-phone").prop('required', false);
+                $("#business-activity").prop('required', false);
+                $("#company-name").prop('required', false);
+                $("#cnpj").prop('required', false);
+            }
+
+            if (isInternal) {
+                if (adType.trim() == '') {
+                    invalidField = 'Tipo de anúncio';
+                } else if (dateStart.trim() == '') {
+                    invalidField = 'Data início';
+                } else if (dateFinish.trim() == '') {
+                    invalidField = 'Data término';
+                } else if (quantity.trim() == '') {
+                    invalidField = 'Quantidade';
+                } else if (name.trim() == '') {
+                    invalidField = 'Nome';
+                } else if (description.trim() == '') {
+                    invalidField = 'Descrição';
+                } else if (value.trim() == '') {
+                    invalidField = 'Valor';
+                } else if (cnpj.trim() == '') {
+                    invalidField = 'CNPJ';
+                } else if (companyname.trim() == '') {
+                    invalidField = 'Nome da empresa';
+                } else if (businessactivity.trim() == '') {
+                    invalidField = 'Atividade da empresa';
+                } else if (fixedphone.trim() == '') {
+                    invalidField = 'Telefone Fixo';
+                } else if (whatsappcellphone.trim() == '') {
+                    invalidField = 'Celular';
+                } else if (email.trim() == '') {
+                    invalidField = 'Email';
+                } else if (!imageFile) {
+                    invalidField = 'Foto do anúncio';
+                }
+            } else {
+                if (adType.trim() == '') {
+                    invalidField = 'Tipo de anúncio';
+                } else if (dateStart.trim() == '') {
+                    invalidField = 'Data início';
+                } else if (dateFinish.trim() == '') {
+                    invalidField = 'Data término';
+                } else if (quantity.trim() == '') {
+                    invalidField = 'Quantidade';
+                } else if (name.trim() == '') {
+                    invalidField = 'Nome';
+                } else if (description.trim() == '') {
+                    invalidField = 'Descrição';
+                } else if (value.trim() == '') {
+                    invalidField = 'Valor';
+                } else if (!imageFile) {
+                    invalidField = 'Foto do anúncio';
+                }
+            }
+
+            if ($("#sponsor_radio_type").is(":visible") && $("#sponsor_type").val().trim() == '') {
+                invalidField = 'Selecione um patrocinador';
+            } else if ($("#partner_radio_type").is(":visible") && $("#partner_type").val().trim() == '') {
+                invalidField = 'Selecione um parceiro';
+            }
+
+            if (invalidField !== '') {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'Campo inválido: ' + invalidField,
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        $('#finishButton').on('click', function() {
+            if (!validationMandatoryFields()) {
+                return false;
+            }
+        });
+
+        $("#value").on("input", function() {
+            $(this).mask('#.###.##0,00', {
+                reverse: true
+            });
+        });
+
+        $("#cnpj").mask("00.000.000/0000-00");
+
+        $("#name").on("input", function() {
+            $(this).val($(this).val().replace(/[^a-zA-Z\s]/g, ''));
+        });
+
+        $("#business-activity").on("input", function() {
+            var regex = /[^a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]/g;
+            $(this).val($(this).val().replace(regex, ''));
+        });
+
+        $(document).ready(function() {
+            $("#date_begin").mask('00/00/0000');
+        });
+
+        $(document).ready(function() {
+            $("#date_finish").mask('00/00/0000');
+        });
+
+        var adType = document.getElementById("type_ad");
+
+        adType.addEventListener("change", function() {
+            var typeRadioButtons = document.querySelectorAll('input[type="radio"][name="type"]');
+            if (adType.value === "Externo") {
+                for (var i = 0; i < typeRadioButtons.length; i++) {
+                    typeRadioButtons[i].setAttribute("required", "");
+                }
+            } else {
+                for (var i = 0; i < typeRadioButtons.length; i++) {
+                    typeRadioButtons[i].removeAttribute("required");
+                }
+            }
+        });
+
+        $("#date_begin").on("input", function() {
+            if ($(this).val().length > 10) {
+                $(this).val($(this).val().slice(0, 10));
+            }
+        });
+
+        $("#date_finish").on("input", function() {
+            if ($(this).val().length > 10) {
+                $(this).val($(this).val().slice(0, 10));
+            }
+        });
+
+        function validateDates() {
+            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
+            var dateFinish = $('#date_finish').val().split('/').reverse().join('-');
+
+            if (new Date(dateFinish) < new Date(dateBegin)) {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'A data de término não pode ser menor que a data de início',
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+
+                $('#date_finish').val('');
+            }
+        }
+
+        $('#date_finish').on('blur', function() {
+            if ($(this).val().length == 10) {
+                validateDates();
+            }
+        });
+
+        $('#sponsor_radio_type, #partner_radio_type').hide();
+        $('.share').hide();
+
+        $('select#type_ad').on('change', function() {
+            if ($(this).val() === 'Externo') {
+                $('.share').show();
+            } else {
+                $('.share').hide();
+            }
+        });
+
+        $('input[name="type"]').on('click', function() {
+            $('#sponsor_radio_type, #partner_radio_type').hide();
+
+            if ($('#sponsor').is(':checked')) {
+                $('#sponsor_radio_type').show();
+                $('#partner_radio_type').hide();
+
+                $('#sponsor_type').val('');
+            } else if ($('#partner').is(':checked')) {
+                $('#partner_radio_type').show();
+                $('#sponsor_radio_type').hide();
+
+                $('#partner_type').val('');
+            }
+        });
+
+        const coverImg = document.getElementById('cover-img');
+        const toggleBtn = document.getElementById('btn-toggle-picture');
+        const removeBtn = document.getElementById('btn-remove-picture');
+
+        function togglePicturePreview() {
+            const previewSrc = coverImg.getAttribute('src');
+            if (previewSrc) {
+                coverImg.setAttribute('src', '');
+                removeBtn.style.display = 'none';
+                toggleBtn.classList.remove('btn-remove-picture');
+                toggleBtn.classList.add('btn-add-picture');
+            } else {
+                coverImg.setAttribute('src', URL.createObjectURL(this.files[0]));
+                removeBtn.style.display = 'inline-block';
+                toggleBtn.classList.remove('btn-add-picture');
+                toggleBtn.classList.add('btn-remove-picture');
+            }
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            document.getElementById('img_url').click();
+        });
+
+        removeBtn.addEventListener('click', togglePicturePreview);
+
+        document.getElementById('img_url').addEventListener('change', togglePicturePreview);
+
+        $(document).ready(function() {
+            $("#type_ad").change(function() {
+                if ($(this).val() === "Interno") {
+                    $("#show-personal-data").show();
+                    $("#show-personal-data-label").show();
+                    $("#company-fields").show();
+                } else {
+                    $("#show-personal-data").hide();
+                    $("#show-personal-data-label").hide();
+                    $("#company-fields").hide();
+                }
+            });
+
+            $("#show-personal-data").change(function() {
+                if ($(this).is(":checked")) {
+                    $("#company-fields").hide();
+                    $("#email").removeAttr("required");
+                    $("#whatsapp-cellphone").removeAttr("required");
+                    $("#fixed-phone").removeAttr("required");
+                    $("#business-activity").removeAttr("required");
+                    $("#company-name").removeAttr("required");
+                    $("#cnpj").removeAttr("required");
+                } else {
+                    $("#company-fields").show();
+                    $("#email").attr("required", true);
+                    $("#whatsapp-cellphone").attr("required", true);
+                    $("#fixed-phone").attr("required", true);
+                    $("#business-activity").attr("required", true);
+                    $("#company-name").attr("required", true);
+                    $("#cnpj").attr("required", true);
+                }
+            });
+        });
+
+        const selectOption = document.querySelector("#type_ad");
+        const finishButton = document.querySelector("#finishButton");
+        const modal = document.querySelector("#modal");
+
+        finishButton.addEventListener("click", () => {
+            if (selectOption.value === "Interno") {
+                let message = 'Será cobrado uma tarifa de R$' + (isset($value) ? $value : '0') +
+                    ',00 por este anúncio!';
+                alert(message);
+            }
+        });
+
+        function formatCNPJ(cnpjInput) {
+            let cnpj = cnpjInput.value.replace(/\D/g, '');
+
+            cnpjInput.value = cnpj.slice(0, 2) + '.' + cnpj.slice(2, 5) + '.' + cnpj.slice(5, 8) + '/' + cnpj.slice(8, 12) +
+                '-' + cnpj.slice(12);
+        }
+
+        function limitCharacters(input) {
+            let cnpj = input.value;
+            let maxLength = 18;
+
+            if (cnpj.length > maxLength) {
+                cnpj = cnpj.substr(0, maxLength);
+                input.value = cnpj;
+            }
+        }
+
+        function formatPhone(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 9) {
+                input.value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 4) + '-' + value.substr(6, 4);
+            }
+        }
+
+        function formatCellphone(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 9) {
+                input.value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 5) + '-' + value.substr(7, 4);
+            }
+        }
+    </script>
+@endsection
