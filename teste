@@ -1,8 +1,10 @@
 @extends('template.default')
 
 @section('icon', 'store')
+@section('back', route('product.list'))
 
 @section('content')
+
     <div class="row">
         <div class="col-md-12 text-center">
 
@@ -14,7 +16,7 @@
 
         </div>
 
-        <form method="post" action="{{ route('product.store') }}">
+        <form id="form" method="post" action="{{ route('product.store') }}" enctype="multipart/form-data">
             @csrf
             <?php if (isset($product)) { ?>
             <input type="hidden" name="product_id" value="{{ $product['id'] }}" />
@@ -31,7 +33,7 @@
                         <div class="form-group form-group-state label-floating is-focused">
                             <select id="type_ad" class="selectpicker" name="type_ad" data-live-search="true"
                                 data-live-search-normalize="true" data-style="select-with-transition"
-                                data-title="Tipo de anúncio" required>
+                                data-title="Tipo de anúncio" required data-type-ad="{{ $product['type_ad'] ?? '' }}">
                                 <option value="" selected style="display:none;"></option>
                                 <option value="Externo"
                                     {{ isset($product['type_ad']) && $product['type_ad'] == 'Externo' ? 'selected' : '' }}>
@@ -117,8 +119,8 @@
                     </span>
                     <div class="form-group">
                         <label class="control-label">@lang('product-adregistration.form.description') <small>(Obrigatório)</small></label>
-                        <input id="description" name="description" aria-required="true" type="text" class="form-control"
-                            maxlength="200" value="{{ $product['description'] ?? '' }}" required />
+                        <input id="description" name="description" aria-required="true" type="text"
+                            class="form-control" maxlength="200" value="{{ $product['description'] ?? '' }}" required />
                     </div>
                 </div>
             </div>
@@ -166,14 +168,13 @@
                         <label for="sponsor_type" class="sr-only">@lang('product-adregistration.sponsors-list')</label>
                         <select id="sponsor_type" name="sponsor_type" class="selectpicker" data-live-search="true"
                             data-live-search-normalize="true" data-style="select-with-transition"
-                            data-title="@lang('product-adregistration.sponsors-list')" required>
+                            data-title="@lang('product-adregistration.sponsors-list')" required tabindex="0" title="">
                             <option value="" disabled selected style="display:none;">@lang('product-adregistration.sponsors-list')</option>
                             @foreach ($sponsors as $sponsor)
                                 <option value="{{ $sponsor['id'] }}">{{ $sponsor['name'] }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <input type="hidden" name="identificator_name" value="{{ $sponsor['name'] ?? '' }}">
                 </div>
 
                 <div id="partner_radio_type" class="input-group sponsor-partner">
@@ -191,14 +192,12 @@
                             @endforeach
                         </select>
                     </div>
-                    <input type="hidden" name="identificator_name" value="{{ $partners['name'] ?? '' }}">
                 </div>
-
             </div>
 
             {{-- Modal --}}
 
-            <div class="col-sm-12" style="padding: 0px;">
+            <div id="checkbox" class="col-sm-12" style="padding: 0px;">
                 <div class="col-sm-6" style="margin-left:-34px">
                     <div class="input-group">
                         <div class="form-group" style="padding-top: 22px;">
@@ -294,20 +293,11 @@
 
             </div>
             <div class="col-sm-6 col-cover">
-                <div class="input-group input-group-cover">
-                    <div class="form-group">
-                        <i class="material-icons cover-icon">image</i>
-                        <span class="cover-title">@lang('product-adregistration.form.img_url')</span>
-                        <div class="cover-wrapper">
-                            <img id="cover-img" class="cover-img" src="" />
-                        </div>
-                    </div>
-                </div>
 
-                <button type="button" id="btn-toggle-picture" class="btn btn-primary btn-simple btn-add-picture">
+                {{-- <button type="button" id="btn-toggle-picture" class="btn btn-primary btn-simple btn-add-picture">
                     <i class="material-icons">add_photo_alternate</i>
                     @lang('product-adregistration.form.add_product_pictures')
-                </button>
+                </button> --}}
 
                 <button type="button" id="btn-remove-picture" class="btn btn-primary btn-simple btn-remove-picture"
                     style="display:none;">
@@ -315,8 +305,24 @@
                     @lang('product-adregistration.form.remove_product_pictures')
                 </button>
 
-                <input type="file" name="img_url" id="img_url" class="file-cover wizard-picture"
-                    data-preview="#cover-img" data-default="" required>
+                <div class="input-group input-group-cover text-danger">
+                    <div class="form-group">
+                        <i class="material-icons cover-icon">image</i>
+                        <span class="cover-title">@lang('product-adregistration.form.img_url') (max. 5)</span>
+                    </div>
+                </div>
+
+                <div class="form-group card add_files text-danger">
+                    <div class="form-group">
+                        <input type="file" class="form-control-file btn btn-primary btn-simple btn-add-picture"
+                        id="btn-toggle-picture" name="images_url[]" multiple>
+                        <i class="material-icons">add_photo_alternate</i>
+                        @lang('product-adregistration.form.add_product_pictures')
+                    </div>
+                    <div class="form-group">
+                        <ul id="file-list"></ul>
+                    </div>
+                </div>
 
                 <input type="hidden" id="remove_cover_picture" name="remove_cover_picture"
                     class="wizard-picture-remove" value="false" data-dispatch="#btn-remove-picture" />
@@ -328,64 +334,55 @@
 
             </div>
         </form>
-
         {{-- Banners --}}
-        <div class="col-md-12 text-dark p-4">
-            <div class="col-md-4 container_cards">
-                {{-- Card Available --}}
-                <div class="card card-stats">
-                    <div class="card-header" data-background-color="primary">
-                        <i class="material-icons">inventory</i>
-                    </div>
-                    <div class="card-content">
-                        <p class="category">@lang('product-adregistration.product_available')</p>
-                        <h2 id="quantity-header" class="card-title fw-bold">
-                            @php
-                                if (is_numeric($total_products)) {
-                                    echo $total_products;
-                                } else {
-                                    echo '-';
-                                }
-                            @endphp
-                            <h2>
+        @if (Route::currentRouteName() === 'product.edit')
+            <div class="col-md-12 text-dark p-4">
+                <div class="col-md-4 container_cards">
+                    {{-- Card Quantity --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary">
+                            <i class="material-icons">inventory</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_available')</p>
+                            <h2 id="quantity-header" class="card-title fw-bold">
+                                {{ $total_products === '' ? $product['quantity'] : $total_products }}<h2>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-4">
-                {{-- Card Sold --}}
-                <div class="card card-stats">
-                    <div class="card-header" data-background-color="primary">
-                        <i class="material-icons">shopping_cart_checkout</i>
-                    </div>
-                    <div class="card-content">
-                        <p class="category">@lang('product-adregistration.product_sold')</p>
-                        <h2 class="card-title fw-bold">@php echo $history_sales; @endphp<h2>
+                <div class="col-md-4">
+                    {{-- Card Sold --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary">
+                            <i class="material-icons">shopping_cart_checkout</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_sold')</p>
+                            <h2 class="card-title fw-bold">@php echo $history_sales; @endphp<h2>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-4">
-                {{-- Card Balance --}}
-                <div class="card card-stats">
-                    <div class="card-header" data-background-color="primary"><i
-                            class="material-symbols-outlined">inventory</i>
-                    </div>
-                    <div class="card-content">
-                        <p class="category">@lang('product-adregistration.product_balance')</p>
-                        <h2 class="card-title fw-bold">
-                            @php
-                                if (is_numeric($total_products) && is_numeric($history_sales)) {
+                <div class="col-md-4">
+                    {{-- Card Balance --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary"><i
+                                class="material-symbols-outlined">inventory</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_balance')</p>
+                            <h2 class="card-title fw-bold">
+                                @php
                                     $available = $total_products - $history_sales;
-                                    echo $available === 0 ? '-' : $available;
-                                } else {
-                                    echo '-';
-                                }
-                            @endphp<h2>
+                                    echo $available;
+                                @endphp
+                                <h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
     </div>
 @endsection
@@ -403,19 +400,157 @@
         .cover-img {
             max-width: 300px !important;
         }
+
+        .add_files {
+            padding-left: 10px;
+            margin-left: 20px;
+        }
+
+        .images-upload {
+            margin-left: 5px;
+        }
+
+        #file-list {
+            padding-left: 10px !important;
+        }
+
+        .file-item {
+            position: relative;
+        }
+
+        .file-item>button {
+            position: absolute;
+            top: -20px;
+            right: 0;
+        }
+
+        .text-danger {
+            color: #f44336;
+        }
     </style>
 @endsection
 
 @section('script')
     <script type="text/javascript">
+        var input = document.getElementById('btn-toggle-picture');
+        var fileList = document.getElementById('file-list');
+        var count = 0;
+
+        input.addEventListener('change', function() {
+            for (var i = 0; i < input.files.length; i++) {
+                if (count >= 5) {
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'Campo inválido: já existem 5 imagens na lista.',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+                    break;
+                }
+                var li = document.createElement('li');
+                li.classList.add('file-item');
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.width = '125px';
+                    img.style.height = '105px';
+                    img.style.borderRadius = '10px';
+                    img.style.boxShadow = '0 1px 4px 0 rgb(0 0 0 / 14%)';
+                    li.appendChild(img);
+                    li.style.margin = '5px';
+                }
+                reader.readAsDataURL(input.files[i]);
+
+                var removeButton = document.createElement('button');
+                removeButton.innerHTML = 'X';
+                removeButton.style.border = 'none';
+                removeButton.style.backgroundColor = 'transparent';
+                removeButton.style.padding = '0';
+                removeButton.style.margin = '0 0 0 5px';
+                removeButton.style.fontSize = '1.2rem';
+                removeButton.style.fontWeight = 'bold';
+                removeButton.addEventListener('click', function() {
+                    fileList.removeChild(li);
+                    count--;
+                });
+                li.appendChild(removeButton);
+
+                fileList.appendChild(li);
+                count++;
+            }
+        });
+
+        fileList.style.display = 'flex';
+        fileList.style.flexWrap = 'wrap';
+        fileList.style.listStyle = 'none';
+
         $(document).ready(function() {
+            var typeAd = $('#type_ad').val();
+            var productTypeAd = $('#type_ad').data('type-ad');
+
+            // Verifica se o valor de typeAd ou productTypeAd é "Interno" e mostra a div relacionada
+            if (typeAd === 'Interno' || productTypeAd === 'Interno') {
+                $('#company-fields').show();
+                $('#checkbox').show();
+            }
+
+            if (typeAd === 'Externo') {
+                $('.sponsor-partner select').prop('required', true);
+                $('.share').show();
+            }
+
             $('#type_ad').on('change', function() {
-                if ($(this).val() == 'Externo') {
+                if ($(this).val() === 'Externo') {
                     $('.sponsor-partner select').prop('required', true);
+                    $('.share').show();
                 } else {
                     $('.sponsor-partner select').prop('required', false);
+                    $('.share').hide();
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'Será cobrado uma tarifa de R$ ' + (typeof $value !== "undefined" ?
+                                $value : '0') +
+                            ',00 por este anúncio!',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
                 }
             });
+
+            $('#sponsor_type').on('change', function() {
+                var sponsorName = $('option:selected', this).data('name');
+                $('#sponsor_name').val(sponsorName);
+            });
+        });
+
+        $(document).ready(function() {
+            // Esconde os elementos iniciais
+            $('#show-personal-data').hide();
+            $('#show-personal-data-label').hide();
+
+            // Adiciona o listener ao select
+            $('#type_ad').change(function() {
+                var typeAd = $(this).val();
+
+                // Exibe ou oculta os elementos apropriados com base no valor selecionado
+                if (typeAd == 'Interno') {
+                    $('#show-personal-data').show();
+                    $('#show-personal-data-label').show();
+                } else {
+                    $('#show-personal-data').hide();
+                    $('#show-personal-data-label').hide();
+                }
+            });
+
+            // Verifica o valor inicial do select ao carregar a view blade
+            var initialTypeAd = $('#type_ad').data('type-ad');
+            if (initialTypeAd == 'Interno') {
+                $('#show-personal-data').show();
+                $('#show-personal-data-label').show();
+            }
         });
 
         function validationMandatoryFields() {
@@ -430,9 +565,9 @@
             let quantity = $("#quantity").val();
             let value = $("#value").val();
             let description = $("#description").val();
-            const imageFile = $("#img_url")[0].files[0];
+            let imageFile = $("#btn-toggle-picture")[0].files[0];
 
-            if (isInternal) {
+            if (isInternal && !$("#show-personal-data").prop('checked')) {
                 $("#email").prop('required', true);
                 $("#whatsapp-cellphone").prop('required', true);
                 $("#fixed-phone").prop('required', true);
@@ -448,15 +583,16 @@
                 var cnpj = $("#cnpj").val();
 
             } else {
-                $("#email").prop('required', false);
-                $("#whatsapp-cellphone").prop('required', false);
-                $("#fixed-phone").prop('required', false);
-                $("#business-activity").prop('required', false);
-                $("#company-name").prop('required', false);
-                $("#cnpj").prop('required', false);
+                // remove atributo required e deixa os valores vazios
+                $("#email").prop('required', false).val('');
+                $("#whatsapp-cellphone").prop('required', false).val('');
+                $("#fixed-phone").prop('required', false).val('');
+                $("#business-activity").prop('required', false).val('');
+                $("#company-name").prop('required', false).val('');
+                $("#cnpj").prop('required', false).val('');
             }
 
-            if (isInternal) {
+            if (isInternal && !$("#show-personal-data").prop('checked')) {
                 if (adType.trim() == '') {
                     invalidField = 'Tipo de anúncio';
                 } else if (dateStart.trim() == '') {
@@ -476,7 +612,7 @@
                 } else if (companyname.trim() == '') {
                     invalidField = 'Nome da empresa';
                 } else if (businessactivity.trim() == '') {
-                    invalidField = 'Atividade da empresa';
+                    invalidField = 'Ramo da empresa';
                 } else if (fixedphone.trim() == '') {
                     invalidField = 'Telefone Fixo';
                 } else if (whatsappcellphone.trim() == '') {
@@ -505,7 +641,6 @@
                     invalidField = 'Foto do anúncio';
                 }
             }
-
             if ($("#sponsor_radio_type").is(":visible") && $("#sponsor_type").val().trim() == '') {
                 invalidField = 'Selecione um patrocinador';
             } else if ($("#partner_radio_type").is(":visible") && $("#partner_type").val().trim() == '') {
@@ -591,19 +726,52 @@
             if (new Date(dateFinish) < new Date(dateBegin)) {
                 swal.fire({
                     title: 'Atenção',
-                    text: 'A data de término não pode ser menor que a data de início',
+                    text: 'A data de término não pode ser anterior à data de início',
                     icon: 'warning',
                     confirmButtonColor: '#3085d6',
                     confirmButtonText: 'OK'
                 });
 
                 $('#date_finish').val('');
+            } else if (new Date(dateBegin) > new Date(dateFinish)) {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'A data de início não pode ser posterior à data de término',
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+
+                $('#date_begin').val('');
             }
         }
 
-        $('#date_finish').on('blur', function() {
-            if ($(this).val().length == 10) {
-                validateDates();
+        $('#date_begin, #date_finish').on('blur', function() {
+            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
+            var dateFinish = $('#date_finish').val().split('/').reverse().join('-');
+
+            if (dateBegin && dateFinish) {
+                if (new Date(dateFinish) < new Date(dateBegin)) {
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'A data de término não pode ser anterior à data de início',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+
+                    $('#date_finish').val('');
+                } else if (new Date(dateBegin) > new Date(dateFinish)) {
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'A data de início não pode ser posterior à data de término',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+
+                    $('#date_begin').val('');
+                }
             }
         });
 
@@ -654,12 +822,12 @@
         }
 
         toggleBtn.addEventListener('click', () => {
-            document.getElementById('img_url').click();
+            document.getElementById('btn-toggle-picture').click();
         });
 
         removeBtn.addEventListener('click', togglePicturePreview);
 
-        document.getElementById('img_url').addEventListener('change', togglePicturePreview);
+        document.getElementById('btn-toggle-picture').addEventListener('change', togglePicturePreview);
 
         $(document).ready(function() {
             $("#type_ad").change(function() {
@@ -667,45 +835,34 @@
                     $("#show-personal-data").show();
                     $("#show-personal-data-label").show();
                     $("#company-fields").show();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .attr('required', true);
+                    $('#show-personal-data').prop('checked', false);
                 } else {
                     $("#show-personal-data").hide();
                     $("#show-personal-data-label").hide();
                     $("#company-fields").hide();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .removeAttr('required');
+                    $('#show-personal-data').prop('checked', false);
                 }
             });
 
-            $("#show-personal-data").change(function() {
-                if ($(this).is(":checked")) {
+            $('#show-personal-data').click(function() {
+                if ($(this).is(':checked')) {
                     $("#company-fields").hide();
-                    $("#email").removeAttr("required");
-                    $("#whatsapp-cellphone").removeAttr("required");
-                    $("#fixed-phone").removeAttr("required");
-                    $("#business-activity").removeAttr("required");
-                    $("#company-name").removeAttr("required");
-                    $("#cnpj").removeAttr("required");
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .removeAttr('required').val('');
                 } else {
                     $("#company-fields").show();
-                    $("#email").attr("required", true);
-                    $("#whatsapp-cellphone").attr("required", true);
-                    $("#fixed-phone").attr("required", true);
-                    $("#business-activity").attr("required", true);
-                    $("#company-name").attr("required", true);
-                    $("#cnpj").attr("required", true);
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .attr('required', true);
                 }
             });
         });
 
         const selectOption = document.querySelector("#type_ad");
-        const finishButton = document.querySelector("#finishButton");
         const modal = document.querySelector("#modal");
-
-        finishButton.addEventListener("click", () => {
-            if (selectOption.value === "Interno") {
-                let message = 'Será cobrado uma tarifa de R$' + (isset($value) ? $value : '0') +
-                    ',00 por este anúncio!';
-                alert(message);
-            }
-        });
 
         function formatCNPJ(cnpjInput) {
             let cnpj = cnpjInput.value.replace(/\D/g, '');
