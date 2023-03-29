@@ -1,1445 +1,1126 @@
 @extends('template.default')
+
 @section('more-content')
     <div class="wizard-container">
-        <div class="card wizard-card" data-color="red">
-            <a href="{{ route('events.list') }}" class="btn btn-primary btn-just-icon btn-round btn-back">
+        <div class="card wizard-card" data-color="red" style="display: none;">
+            <a href="{{ route("users.{$user_type}.list") }}" class="btn btn-primary btn-just-icon btn-round btn-back">
                 <i class="material-icons">arrow_back</i>
             </a>
 
-            @switch($original_status)
-                @case(\App\Models\Event::ACTIVE_STATUS)
-                    <small class="label label-success label-status">@lang('events.status.active')</small>
-                @break
-
-                @case(\App\Models\Event::INACTIVE_STATUS)
-                    <small class="label label-warning label-status">@lang('events.status.inactive')</small>
-                @break
-
-                @case(\App\Models\Event::DRAFT_STATUS)
-                    <small class="label label-gray label-status">@lang('events.status.draft')</small>
-                @break
-
-                @case(\App\Models\Event::CLOSED_STATUS)
-                    <small class="label label-purple label-status">@lang('events.status.closed')</small>
-                @break
-
-                @case(\App\Models\Event::REALIZED_STATUS)
-                    <small class="label label-blue label-status">@lang('events.status.realized')</small>
-                @break
-
-                @case(\App\Models\Event::CANCELLED_STATUS)
-                    <small class="label label-danger label-status">@lang('events.status.cancelled')</small>
-                @break
-
-                @default
-            @endswitch
-            <form action="{{ route('events.create') }}" method="post" id="form-event" enctype="multipart/form-data">
+            <form
+                action="{{ $type == 'create' ? route("users.{$user_type}.create.post") : route("users.{$user_type}.update.post", ['user_id' => $user['id']]) }}"
+                method="POST" enctype="multipart/form-data" id="user-form">
                 @csrf
-
-                <input type="hidden" name="original_status" id="original_status" value="{{ $original_status }}">
 
                 <div class="wizard-header">
                     <h3 class="wizard-title">
-                        @lang('events.create.title')
+                        @lang($user_type . '.title-' . $type)
                     </h3>
-                    <h5>@lang('events.create.bigger-title')</h5>
+                    <h5>@lang($user_type . '.description-create')</h5>
                 </div>
-
                 <div class="wizard-navigation">
-                    <ul id="tab-list" class="list-group bg-light text-dark d-flex justify-content-center">
-                        <li id="event" class="list-group-item text-center">
-                            <a class="list-link" href="#event-data" data-toggle="tab">
-                                <i class="material-icons icon icon-default">info_outline</i>
-                                EVENTO
-                            </a>
-                        </li>
-                        @foreach ($classes as $member_class)
-                            <li class="list-group-item text-center">
-                                <a class="list-link" href="#event-class-{{ $member_class['label'] }}" data-toggle="tab">
-                                    <i class="material-icons" style="color: {{ $member_class['color'] }}">emoji_events</i>
-                                    {{ $member_class['name'] }}
-                                </a>
-                            </li>
-                        @endforeach
-                        <li class="list-group-item text-center">
-                            <a id="status" class="list-link" href="#philanthropy-tab" data-toggle="tab">
-                                <i class="material-icons icon-default">accessibility</i>
-                                FILANTROPIA
-                            </a>
-                        </li>
-                        <li class="list-group-item text-center">
-                            <a id="status" class="list-link" href="#status-tab" data-toggle="tab">
-                                <i class="material-icons icon-default">bar_chart</i>
-                                STATUS
-                            </a>
-                        </li>
+                    <ul>
+                        <li><a href="#mandatory-data" data-toggle="tab">@lang($user_type . '.tabs.mandatory-data')</a></li>
+                        <li><a href="#complementary-data" data-toggle="tab">@lang($user_type . '.tabs.complementary-data')</a></li>
+
+                        @if ($type == 'create')
+                            <li><a href="#vehicle-data" data-toggle="tab">@lang($user_type . '.tabs.vehicle-data')</a></li>
+                        @else
+                            <li><a href="#vehicles" data-toggle="tab">@lang($user_type . '.tabs.vehicles-data')</a></li>
+                        @endif
                     </ul>
                 </div>
 
                 <div class="tab-content">
-                    @include('events.tabs.event-data')
+                    @include('users.all.tabs.mandatory-data')
+                    @include('users.all.tabs.complementary-data')
 
-                    @foreach ($classes as $member_class)
-                        @include('events.tabs.class-data')
-                    @endforeach
-                    @include('events.tabs.philanthropy')
-                    @include('events.tabs.status')
-
-                    <div id="return" class="text-left">
-                        <a href="" class="btn btn-primary btn-outline text-center" id="previous-tab-button">
-                            <i class="material-icons">arrow_back_ios</i>@lang('events.btn-previous')
-                        </a>
-                    </div>
-
-                    <div id="next-btn" class="text-right">
-                        <a href="" class="btn btn-primary btn-outline" id="next-tab-button">@lang('events.btn-next') <i
-                                class="material-icons">arrow_forward_ios</i>
-                        </a>
-                    </div>
+                    @if ($type == 'create')
+                        @include('users.all.tabs.vehicle-data')
+                    @else
+                        @include('users.all.tabs.vehicles')
+                    @endif
                 </div>
 
                 <div class="wizard-footer">
-                    <div class="col-sm-12 pull-right text-right">
-
-                        @if (
-                            !$event ||
-                                ($event && $event['status'] == \App\Models\Event::DRAFT_STATUS) ||
-                                !is_array($event) ||
-                                !isset($event['status']) ||
-                                $original_status == \App\Models\Event::DRAFT_STATUS)
-                            <button type='button' class='btn btn-finish btn-fill btn-secondary btn-wd'
-                                id="btn-save-draft">Salvar rascunho</button>
-                            <button type='button' class='btn btn-finish btn-fill btn-primary btn-wd'
-                                id="btn-save-active">Salvar e ativar</button>
-                        @elseif($event && !in_array($event['status'], [\App\Models\Event::REALIZED_STATUS, \App\Models\Event::CANCELLED_STATUS]))
-                            <button type='submit' class='btn btn-finish btn-fill btn-primary btn-wd'
-                                id="btn-save">@lang('events.btn-finish')</button>
-                        @endif
+                    <div class="pull-right">
+                        <button type='button' class='btn btn-next btn-fill btn-primary btn-wd'>@lang('general.next')</button>
+                        <button type='submit' class='btn btn-finish btn-fill btn-primary btn-wd'>@lang('general.finish')</button>
                     </div>
-                </div>
 
-                <div class="clearfix"></div>
+                    <div class="pull-left">
+                        <button type='button'
+                            class='btn btn-previous btn-fill btn-default btn-wd'>@lang('general.previous')</button>
+                    </div>
+
+                    <div class="clearfix"></div>
+                </div>
             </form>
         </div>
-        {{-- @include('template.loading.wizard') --}}
+
+        @include('template.loading.wizard')
     </div>
+
+    @if ($type == 'update')
+        @include('users.all.history')
+    @endif
 @endsection
 
 @section('free-content')
-    @include('events.status.resume')
-    <div class="modal fade" tabindex="-1" role="dialog" id="address-modal">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                            aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">{{ __('administrators.address.modal.title') }}</h4>
-                </div>
+    @if ($type == 'update')
+        @include('users.all.modal.vehicle-modal')
+    @endif
 
-                <div class="modal-body">
+    @include('users.all.modal.address-modal')
+@endsection
 
-                    <div class="row">
-                        {{-- Zip Code --}}
-                        <div class="col-sm-4">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">location_on</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.zip-code')
-                                        <small>(@lang('general.required'))</small></label>
-                                    <input name="address_zip_code" id="address_zip_code" type="text"
-                                        class="form-control cep" maxlength="10" onblur="findAddressByCep()" required />
-                                </div>
-                            </div>
-                        </div>
+@section('style')
+    <style type="text/css">
+        .car-principal-information {
+            /*margin-bottom: 32px; background-color: whitesmoke;*/
+            padding-bottom: 16px;
+            border-radius: 16px;
+        }
 
-                        <div class="col-sm-2 col-loading" style="display: none">
-                            <i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
-                        </div>
+        .carplate-group,
+        .yaers-group {
+            margin-top: 6px;
+        }
 
-                        <div class="col-sm-4 col-cep-not-found" style="display: none">
-                            <small class="error">@lang('administrators.address.modal.cep-not-found')</small>
-                        </div>
-                    </div>
+        .box-vehicle-data {
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
 
-                    <div class="row">
-                        {{-- State --}}
-                        <div class="col-sm-5">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">map</i>
-                                </span>
-                                <div class="form-group form-group-state label-floating is-focused">
-                                    {{-- <label class="control-label">@lang('administrators.address.modal.form.state') <small>(@lang('general.required'))</small></label> --}}
-                                    <select name="address_state" id="address_state" class="selectpicker"
-                                        data-live-search="true" data-live-search-normalize="true"
-                                        data-style="select-with-transition" data-title="@lang('administrators.address.modal.form.state')">
-                                        @foreach ($available_states as $i_state => $state)
-                                            <option data-tokens="{{ strtolower($i_state) }}" value="{{ $i_state }}">
-                                                {{ $state }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+        .square-car-color {
+            padding: 6px;
+            border-radius: 100%;
+            display: inline-block;
+            margin-right: 4px;
+            box-shadow: 1px 1px 3px 0 rgba(0, 0, 0, 0.1), -1px -1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
 
-                        {{-- City --}}
-                        <div class="col-sm-6">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">location_city</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.city')
-                                        <small>(@lang('general.required'))</small></label>
-                                    <input name="address_city" id="address_city" type="text" class="form-control"
-                                        maxlength="30" required />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        .bootstrap-select {
+            margin-top: 0;
+        }
 
-                    <div class="row">
-                        {{-- Neighborhood --}}
-                        <div class="col-sm-7">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">scatter_plot</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.neighborhood')
-                                        <small>(@lang('general.required'))</small></label>
-                                    <input name="address_neighborhood" id="address_neighborhood" type="text"
-                                        class="form-control" maxlength="30" required />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        .no-vehicle {
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #fbfbfb;
+        }
 
-                    <div class="row">
-                        {{-- Street address --}}
-                        <div class="col-sm-8">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">edit_road</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.street_address')
-                                        <small>(@lang('general.required'))</small></label>
-                                    <input name="address_street" id="address_street" type="text" class="form-control"
-                                        maxlength="50" required />
-                                </div>
-                            </div>
-                        </div>
+        /* .form-group-car-model{ margin-top: 28px !important; } */
+        .car-model-picture {
+            margin-top: 12px;
+            border-radius: 4px;
+            object-fit: contain;
+        }
 
-                        {{-- Number --}}
-                        <div class="col-sm-3">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">looks_one</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.number')
-                                        <small>(@lang('general.required'))</small></label>
-                                    <input name="address_number" id="address_number" type="text"
-                                        class="form-control uppercase" maxlength="5" required />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        .vehicle-table-title {
+            font-weight: bold;
+            color: #555;
+            font-size: 1.1em;
+            border-bottom: 1px solid #eee;
+        }
 
-                    <div class="row">
-                        {{-- Complement --}}
-                        <div class="col-sm-11">
-                            <div class="input-group">
-                                <span class="input-group-addon">
-                                    <i class="material-icons">filter_9_plus</i>
-                                </span>
-                                <div class="form-group label-floating">
-                                    <label class="control-label">@lang('administrators.address.modal.form.complement')</label>
-                                    <input name="address_complement" id="address_complement" type="text"
-                                        class="form-control" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        .vehicle-table-line {
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e9e9e9;
+        }
 
-                </div>
+        .vehicle-table-line .col-actions .btn {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
 
-                <div class="modal-footer">
-                    <div class="loading" style="display: none">
-                        <i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
-                    </div>
+        .color-box {
+            display: block;
+            width: 12px;
+            height: 12px;
+            top: 4px;
+            margin: 0 auto;
+            position: absolute;
+            border-radius: 6px;
+        }
 
-                    <button type="button" class="btn btn-default"
-                        data-dismiss="modal">{{ __('general.cancel') }}</button>
-                    <button type="button" class="btn btn-primary" id="btn-save-address"
-                        onclick="saveAddress()">{{ __('general.save') }}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @include('events.modal.members-modal')
+        .color-text {
+            padding-left: 16px;
+        }
+
+        /*.dropdown-toggle .square-car-color{ vertical-align: middle;  }*/
+
+        #vehicle-modal .car-model-picture {
+            height: 60px !important;
+        }
+
+        #vehicle-modal .loading-modal {
+            width: 100%;
+            height: 120px;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #vehicle-modal .modal-footer .loading {
+            display: inline-block;
+            margin-right: 12px;
+        }
+
+        .car-model-picture-inside {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 100%;
+            margin-right: 8px;
+            object-fit: cover;
+        }
+
+        .row.vehicle-photos {
+            padding: 0 20px;
+        }
+
+        .photo-container {
+            display: inline-block;
+        }
+
+        .thumbnail {
+            display: block;
+            padding: 12px;
+            margin-bottom: 0;
+        }
+
+        .btn-remove-photo {
+            display: block;
+            text-align: center;
+            margin: 0 auto;
+        }
+
+        .user-vehicle-photo {
+            width: 145px !important;
+            height: 82px !important;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.19);
+        }
+
+        .add_vehicle_photo,
+        .add_photo_without_vehicle {
+            display: none !important;
+        }
+
+        .img-add-picture {
+            border: 2px dashed #333;
+        }
+
+        .add-vehicle-thumbnail {
+            margin: 0 !important;
+        }
+
+        .form-group-state {
+            margin-top: 12px;
+        }
+
+        .col-loading,
+        .col-cep-not-found {
+            padding: 20px 5px;
+        }
+
+        .col-cep-not-found .error {
+            color: #da750d
+        }
+
+        .title-history {
+            font-weight: bold;
+        }
+    </style>
 @endsection
 
 @section('script')
     <script type="text/javascript">
-        function validationMandatoryFields() {
-            let invalidField = '';
-            const name = $("#name").val();
-            const description = $("#description").val();
-            const meetingPoint = $("#meeting_point").val();
-            const dateBegin = $("#date_begin").val();
-            const dateLimit = $("#date_limit").val();
-            const startTime = $("#start_time").val();
-            const endTime = $("#end_time").val();
-            const maxVehicles = $("#max_vehicles").val();
-            const maxParticipants = $("#max_participants").val();
-            const maxCompanions = $("#max_companions").val();
-            const unsubscribeDateLimit = $("#unsubscribe_date_limit").val();
-            const retentionValue = $("#retention_value").val();
+        var create_vehicle_action = "{{ route('api.vehicles.create') }}";
+        var update_vehicle_action = "{{ route('api.vehicles.update') }}";
+        var update_vehicle_id = false;
+        var photo_without_vehicle = {};
 
-            if (name.trim() == '') {
-                invalidField = 'Nome';
-            } else if (description.trim() == '') {
-                invalidField = 'Descrição';
-            } else if (meetingPoint.trim() == '') {
-                invalidField = 'Ponto de encontro';
-            } else if (dateBegin.trim() == '') {
-                invalidField = 'Data de início';
-            } else if (dateLimit.trim() == '') {
-                invalidField = 'Data limite';
-            } else if (startTime.trim() == '') {
-                invalidField = 'Hora de início';
-            } else if (endTime.trim() == '') {
-                invalidField = 'Hora de término';
-            } else if (maxVehicles.trim() == '') {
-                invalidField = 'Número máximo de veículos';
-            } else if (maxParticipants.trim() == '') {
-                invalidField = 'Número máximo de participantes';
-            } else if (maxCompanions.trim() == '') {
-                invalidField = 'Número máximo de acompanhantes';
-            } else if (unsubscribeDateLimit.trim() == '') {
-                invalidField = 'Data limite para cancelamento';
-            } else if (retentionValue.trim() == '') {
-                invalidField = 'Valor de retenção';
-            }
+        var no_picture = "{{ asset('images/icons/no-image-icon.png') }}";
 
-            if (invalidField !== '') {
-                swal.fire({
-                    title: 'Atenção',
-                    text: 'Campo inválido: ' + invalidField,
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-                return false;
-            } else {
-                return true;
-            }
-        }
-
-        $('#next-btn').on('click', function() {
-            if (!validationMandatoryFields()) {
-                return false;
-            }
-        });
-
-        $(document).on('change', '.file-cover', function() {
-            var preview = $(this).data('preview');
-            if (this.files && this.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    $(preview).attr('src', e.target.result);
-                }
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-
-        $(document).on('click', '.btn-remove-picture', function() {
-            $('#preview-cover-img').attr('src', '{{ asset('images/icons/add-cover-icon.png') }}' + '?' + new Date()
-                .getTime());
-            $('#remove_cover_picture').val('true');
-            $('#cover_picture').val('');
-        });
-
-        $(document).on('click', '.btn-undo-remove-picture', function() {
-            var lastImage = $('#preview-cover-img').attr('data-last-image');
-            if (lastImage) {
-                $('#preview-cover-img').attr('src', lastImage);
-                $('#remove_cover_picture').val('false');
-            }
-        });
-
-        $(document).ready(function() {
-            $('#institution_name').prop('required', false);
-            $('#charity_type_fixed').prop('required', false);
-            $('#charity_value').prop('required', false);
-
-            $('#institution_name, #charity_type_fixed, #charity_value').on('input', function() {
-                if ($('#institution_name').val() || $('#charity_type_fixed').is(':checked') || $(
-                        '#charity_value').val()) {
-                    $('#institution_name').prop('required', true);
-                    $('#charity_type_fixed').prop('required', true);
-                    $('#charity_value').prop('required', true);
+        /**
+         * @TODO
+         * Mover função para um helper global
+         */
+        $.fn.serializeObject = function() {
+            var o = {};
+            var a = this.serializeArray();
+            $.each(a, function() {
+                if (o[this.name]) {
+                    if (!o[this.name].push) {
+                        o[this.name] = [o[this.name]];
+                    }
+                    o[this.name].push(this.value || '');
+                } else {
+                    o[this.name] = this.value || '';
                 }
             });
-        });
+            return o;
+        };
 
         $(document).ready(function() {
-            $(".moving-tab").remove();
-        });
+            $('#document_cpf').on('input', function() {
+                this.value = this.value.replace(/[^\d]+/g, '');
 
-        $('#cover_picture').change(function() {
-            $('#remove_cover_picture').val('false');
-            readURL(this, '#preview-cover-img');
-        });
-
-        function readURL(input, img_id) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    $(img_id).attr('src', e.target.result);
+                var value = this.value;
+                if (value.length == 11) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+                    this.value = value;
                 }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
+            });
 
-        $(document).ready(function() {
+            $("#carplate-field").on("input", function() {
+                var value = $(this).val();
+                var pattern = /^[a-zA-Z]+$/;
+                if (!pattern.test(value.substr(0, 3))) {
+                    $(this).val(value.replace(/[^a-zA-Z]+/g, "").substr(0, 3));
+                }
+                value = $(this).val();
+                if (value.length === 3) {
+                    $(this).val(value + "-");
+                } else if (value.length > 6) {
+                    pattern = /^[a-zA-Z0-9]+$/;
+                    if (!pattern.test(value.substr(4))) {
+                        $(this).val(value.substr(0, 4) + value.substr(4).replace(/[^a-zA-Z0-9]+/g, ""));
+                    }
+                }
+            });
+
+            $("#vehicle-modal-carplate").on("input", function() {
+                var value = $(this).val();
+                var pattern = /^[a-zA-Z]+$/;
+                if (!pattern.test(value.substr(0, 3))) {
+                    $(this).val(value.replace(/[^a-zA-Z]+/g, "").substr(0, 3));
+                }
+                value = $(this).val();
+                if (value.length === 3) {
+                    $(this).val(value + "-");
+                } else if (value.length > 6) {
+                    pattern = /^[a-zA-Z0-9]+$/;
+                    if (!pattern.test(value.substr(4))) {
+                        $(this).val(value.substr(0, 4) + value.substr(4).replace(/[^a-zA-Z0-9]+/g, ""));
+                    }
+                }
+            });
+
             $('#name').on('input', function() {
-                var input = $(this);
-                var regex = /^[a-zA-Z\u00C0-\u00FF ]+$/;
-                var is_name = regex.test(input.val());
-                if (!is_name) {
-                    input.val(input.val().substr(0, input.val().length - 1));
-                }
-            });
-            $('#meeting_point').on('input', function() {
-                var input = $(this);
-                var regex = /^[a-zA-Z\u00C0-\u00FF ]+$/;
-                var is_description = regex.test(input.val());
-                if (!is_description) {
-                    input.val(input.val().substr(0, input.val().length - 1));
-                }
-            });
-            $('#description').on('input', function() {
-                var input = $(this);
-                var regex = /^[a-zA-Z\u00C0-\u00FF ]+$/;
-                var is_description = regex.test(input.val());
-                if (!is_description) {
-                    input.val(input.val().substr(0, input.val().length - 1));
-                }
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
             });
 
-            $("#retention_value").on("input", function() {
-                $(this).mask('#.###.##0,00', {
-                    reverse: true
-                });
+            $('#nickname').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
             });
 
-            $("#charity_value").on("input", function() {
-                $(this).mask('#.###.##0,00', {
-                    reverse: true
-                });
+            $('#address_city').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
+            });
+
+            $('#address_neighborhood').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
+            });
+
+            $('#address_street').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
+            });
+
+            $('#status_reason').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
+            });
+
+            $('#phone').on('input', function() {
+                this.value = this.value.replace(/[^\d]+/g, '');
+
+                var value = this.value;
+                if (value.length >= 10) {
+                    value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 4) + '-' + value.substr(6);
+                    this.value = value;
+                }
+            });
+
+            $('#rg').on('input', function() {
+                this.value = this.value.replace(/[^\d]+/g, '');
+            });
+
+            $('#company_activities').on('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
+            });
+
+            $("#renavam").on("input", function() {
+                let value = $(this).val();
+                let regex = /^[0-9A-Za-z]+$/;
+                if (!regex.test(value)) {
+                    $(this).val(value.replace(/[^0-9A-Za-z]+/g, ''));
+                }
             });
 
         });
-
-        $(function() {
-            $('.input-date').mask('99/99/9999');
-        });
-
-        $(document).ready(function() {
-            $('a.list-link').on('click', function(e) {
-                e.preventDefault();
-
-                let invalidField = '';
-                const name = $("#name").val();
-                const description = $("#description").val();
-                const meetingPoint = $("#meeting_point").val();
-                const dateBegin = $("#date_begin").val();
-                const dateLimit = $("#date_limit").val();
-                const startTime = $("#start_time").val();
-                const endTime = $("#end_time").val();
-                const maxVehicles = $("#max_vehicles").val();
-                const maxParticipants = $("#max_participants").val();
-                const maxCompanions = $("#max_companions").val();
-                const unsubscribeDateLimit = $("#unsubscribe_date_limit").val();
-                const retentionValue = $("#retention_value").val();
-
-                if (name.trim() == '') {
-                    invalidField = 'Nome';
-                } else if (description.trim() == '') {
-                    invalidField = 'Descrição';
-                } else if ($("#address_zip_code").val() == '') {
-                    invalidField = 'CEP';
-                } else if ($("#address_state").val() == '') {
-                    invalidField = 'Estado';
-                } else if ($("#address_city").val() == '') {
-                    invalidField = 'Cidade';
-                } else if ($("#address_street").val() == '') {
-                    invalidField = 'Logradouro';
-                } else if ($("#address_number").val() == '') {
-                    invalidField = 'Número';
-                } else if (meetingPoint.trim() == '') {
-                    invalidField = 'Ponto de encontro';
-                } else if (dateBegin.trim() == '') {
-                    invalidField = 'Data de início';
-                } else if (dateLimit.trim() == '') {
-                    invalidField = 'Data limite';
-                } else if (startTime.trim() == '') {
-                    invalidField = 'Hora de início';
-                } else if (endTime.trim() == '') {
-                    invalidField = 'Hora de término';
-                } else if (maxVehicles.trim() == '') {
-                    invalidField = 'Número máximo de veículos';
-                } else if (maxParticipants.trim() == '') {
-                    invalidField = 'Número máximo de participantes';
-                } else if (maxCompanions.trim() == '') {
-                    invalidField = 'Número máximo de acompanhantes';
-                } else if (unsubscribeDateLimit.trim() == '') {
-                    invalidField = 'Data limite para cancelamento';
-                } else if (retentionValue.trim() == '') {
-                    invalidField = 'Valor de retenção';
-                }
-
-                if (invalidField != '') {
-                    swal.fire({
-                        title: 'Atenção',
-                        text: 'Campo inválido: ' + invalidField,
-                        icon: 'warning',
-                        confirmButtonColor: '#3085d6',
-                        confirmButtonText: 'OK'
-                    });
-                    return false;
-                }
-
-                var allFieldsFilled = true;
-                $('input[required], select[required]').each(function() {
-                    if ($(this).val() === '') {
-                        allFieldsFilled = false;
-                    }
-                });
-            });
-        });
-
-        function validateDates() {
-            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
-            var dateLimit = $('#date_limit').val().split('/').reverse().join('-');
-
-            if (new Date(dateLimit) < new Date(dateBegin)) {
-                swal.fire({
-                    title: 'Atenção',
-                    text: 'A data de término não pode ser anterior à data de início',
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-
-                $('#date_limit').val('');
-            } else if (new Date(dateBegin) > new Date(dateLimit)) {
-                swal.fire({
-                    title: 'Atenção',
-                    text: 'A data de início não pode ser posterior à data de término',
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-
-                $('#date_begin').val('');
-            }
-        }
-
-        $('#date_begin, #date_limit, #unsubscribe_date_limit, #start_subscription_date').on('blur', function() {
-            var unsubscribe_date_limit = $('#unsubscribe_date_limit').val().split('/').reverse().join('-');
-            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
-            var dateLimit = $('#date_limit').val().split('/').reverse().join('-');
-            var startSubscriptionDate = $('#start_subscription_date').val().split('/').reverse().join('-');
-
-            var hasError = false;
-            var errorMessage = '';
-
-            if (dateBegin && dateLimit) {
-                if (new Date(dateLimit) > new Date(dateBegin)) {
-                    hasError = true;
-                    errorMessage = 'A data de inscrição não pode ser posterior à data de início';
-                    $('#date_limit').val('');
-                } else if (new Date(dateBegin) < new Date(dateLimit)) {
-                    hasError = true;
-                    errorMessage = 'A data de inscrição não pode ser anterior à data de término';
-                    $('#date_begin').val('');
-                }
-            }
-
-            if (unsubscribe_date_limit && dateBegin && dateLimit) {
-                if (new Date(unsubscribe_date_limit) < new Date(dateLimit) || new Date(unsubscribe_date_limit) >
-                    new Date(dateBegin)) {
-                    hasError = true;
-                    errorMessage =
-                        'A data limite de cancelamento deve estar entre as datas de término e início da inscrição';
-                    $('#unsubscribe_date_limit').val('');
-                }
-            }
-
-            if (startSubscriptionDate && dateBegin) {
-                if (new Date(startSubscriptionDate) > new Date(dateBegin)) {
-                    hasError = true;
-                    errorMessage =
-                        'A data de início da inscrição não pode ser posterior à data de início do evento';
-                    $('#start_subscription_date').val('');
-                }
-            }
-
-            if (hasError) {
-                swal.fire({
-                    title: 'Atenção',
-                    text: errorMessage,
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-
-        let items = document.getElementsByClassName('list-group-item');
-
-        let tabs = document.querySelectorAll('.nav-tabs .nav-link');
-        tabs.forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                let tabId = this.getAttribute('href').slice(1);
-                let items = document.querySelectorAll('.item');
-                items.forEach(function(item) {
-                    item.classList.remove('active');
-                    if (item.id === tabId) {
-                        item.classList.add('active');
-                    }
-                });
-            });
-        });
-
-        const statusTab = document.getElementById("status");
-        statusTab.addEventListener("click", function() {
-            if ($('li.list-group-item.text-center.active a').attr('id') === 'status') {
-                $('#next-btn').hide();
-            }
-            $('#return').show();
-        });
-
-        const firstTab = document.querySelector("#tab-list li:first-child");
-        firstTab.addEventListener("click", function() {
-            $('#return')[0].style.display = 'none';
-            $('#next-btn')[0].style.display = 'inline-block';
-        });
-
-        // Esse trecho de código pega todas as tabs disponíveis e verifica qual é a próxima para ser exibida. Após o href ser clicado, ele irá alterar para a próxima tab
-        $(document).ready(function() {
-            $("#event").addClass("active");
-            $("#event-data").addClass("active");
-
-            $("#next-tab-button").click(function(e) {
-                e.preventDefault();
-
-                let invalidField = '';
-                const name = $("#name").val();
-                const description = $("#description").val();
-                const meetingPoint = $("#meeting_point").val();
-                const dateBegin = $("#date_begin").val();
-                const dateLimit = $("#date_limit").val();
-                const startTime = $("#start_time").val();
-                const endTime = $("#end_time").val();
-                const maxVehicles = $("#max_vehicles").val();
-                const maxParticipants = $("#max_participants").val();
-                const maxCompanions = $("#max_companions").val();
-                const unsubscribeDateLimit = $("#unsubscribe_date_limit").val();
-                const retentionValue = $("#retention_value").val();
-
-                if (name.trim() == '') {
-                    invalidField = 'Nome';
-                } else if (description.trim() == '') {
-                    invalidField = 'Descrição';
-                } else if ($("#address_zip_code").val() == '') {
-                    invalidField = 'CEP';
-                } else if ($("#address_state").val() == '') {
-                    invalidField = 'Estado';
-                } else if ($("#address_city").val() == '') {
-                    invalidField = 'Cidade';
-                } else if ($("#address_street").val() == '') {
-                    invalidField = 'Logradouro';
-                } else if ($("#address_number").val() == '') {
-                    invalidField = 'Número';
-                } else if (meetingPoint.trim() == '') {
-                    invalidField = 'Ponto de encontro';
-                } else if (dateBegin.trim() == '') {
-                    invalidField = 'Data de início';
-                } else if (dateLimit.trim() == '') {
-                    invalidField = 'Data limite';
-                } else if (startTime.trim() == '') {
-                    invalidField = 'Hora de início';
-                } else if (endTime.trim() == '') {
-                    invalidField = 'Hora de término';
-                } else if (maxVehicles.trim() == '') {
-                    invalidField = 'Número máximo de veículos';
-                } else if (maxParticipants.trim() == '') {
-                    invalidField = 'Número máximo de participantes';
-                } else if (maxCompanions.trim() == '') {
-                    invalidField = 'Número máximo de acompanhantes';
-                } else if (unsubscribeDateLimit.trim() == '') {
-                    invalidField = 'Data limite para cancelamento';
-                } else if (retentionValue.trim() == '') {
-                    invalidField = 'Valor de retenção';
-                }
-
-                if (invalidField != '') {
-                    swal.fire({
-                        title: 'Atenção',
-                        text: 'Campo inválido: ' + invalidField,
-                        icon: 'warning',
-                        confirmButtonColor: '#3085d6',
-                        confirmButtonText: 'OK'
-                    });
-                    return false;
-                }
-
-                let currentTab = $(".tab-pane.active");
-                let nextTab = currentTab.next(".tab-pane");
-
-                if (nextTab.length == 0) {
-                    nextTab = $(".tab-pane").first();
-                }
-
-                currentTab.removeClass("active");
-                nextTab.addClass("active");
-
-                if (nextTab[0].classList.contains('active') && nextTab[0]['id'] === 'status-tab') {
-                    $('#next-btn')[0].style.display = 'none';
-                }
-
-                if (items[0].classList.contains('active')) {
-                    $('#return')[0].style.display = 'none';
-                } else {
-                    $('#return')[0].style.display = 'inline-block';
-                }
-
-                // Verifica se todos os campos obrigatórios foram preenchidos corretamente
-                var allFieldsValid = true;
-                $('input[required], select[required]').each(function() {
-                    if (!this.checkValidity()) {
-                        allFieldsValid = false;
-                    }
-                });
-
-                // Atualiza a lista de navegação se todos os campos foram preenchidos corretamente
-                if (allFieldsValid) {
-                    let currentNav = $(".list-group-item.active");
-                    let nextNav = currentNav.next(".list-group-item");
-
-                    if (nextNav.length == 0) {
-                        nextNav = $(".list-group-item").first();
-                    }
-
-                    currentNav.removeClass('active');
-                    nextNav.addClass('active');
-                }
-            });
-        });
-
-        // pega todas as tabs disponíveis e verifica qual é a anterior para ser exibida. Após o href ser clicado, ele irá alterar para a tab anterior
-        $(document).ready(function() {
-            $("#previous-tab-button").click(function(e) {
-                e.preventDefault();
-                let currentTab = $(".tab-pane.active");
-                let previousTab = currentTab.prev(".tab-pane");
-
-                if (previousTab.length == 0) {
-                    previousTab = $(".tab-pane").last();
-                }
-
-                currentTab.removeClass("active");
-                previousTab.addClass("active");
-
-                if (items[items.length - 1].classList.contains('active')) {} else {
-                    $('#next-btn')[0].style.display = 'inline-block';
-                }
-
-                if (items[0].classList.contains('active')) {
-                    $('#return')[0].style.display = 'none';
-                } else {
-                    $('#return')[0].style.display = 'inline-block';
-                }
-
-            });
-        });
-
-        // adiciona a classe active a todo item anterior que será exibido para o usuário, ou seja, a mesma ação da função anterior, porém, para os itens anteriores na lista
-        $("#previous-tab-button").click(function(e) {
-            e.preventDefault();
-            let currentTab = $(".list-group-item.active");
-            let previousTab = currentTab.prev(".list-group-item");
-
-            if (previousTab.length == 0) {
-                previousTab = $(".list-group-item").last();
-            }
-
-            currentTab.removeClass("active");
-            previousTab.addClass("active");
-        });
-
-        let class_columns = [
-            @foreach ($classes_keys as $class_key)
-                '{{ $class_key }}',
-            @endforeach
-        ];
 
         $(document).ready(function() {
             makeWizard('.wizard-card', {
                 'animation': 'fade',
-                'onTabClick': function() {
-                    if (!$("#name").val()) {
-                        $("#name").focus();
-                    }
+            });
+
+            // $("#user-form").on('submit', function(){
+            //     $(".phone_with_ddd").unmask();
+            //     $(".cpf").unmask();
+            //     $(".carplate").unmask();
+            // });
+
+            $("#add-vehicle").on('change', function() {
+                if (this.checked) {
+                    $(".vehicle-add-after").stop().fadeOut(360, function() {
+                        $(".vehicle-data").stop().show(320);
+                    });
+
+                    $("#carplate-field").attr("required", true);
+                    $("#car-model-field").attr("required", true);
+
+                } else {
+                    $(".vehicle-data").stop().hide(320, function() {
+                        $(".vehicle-add-after").stop().fadeIn(360);
+                    });
+
+                    $("#carplate-field").removeAttr("required");
+                    $("#car-model-field").removeAttr("required");
                 }
             });
+
+            $("#status").on('change', function() {
+                if ($("#status").val() == '{{ \App\Models\User::ACTIVE_STATUS }}') {
+                    $(".row-status-reason").stop().hide(300);
+                } else {
+                    $(".row-status-reason").stop().show(300);
+                }
+
+                if ($("#status").val() != '{{ \App\Models\User::SUSPENDED_STATUS }}') {
+                    $(".row-suspended-time").stop().hide(300);
+                } else {
+                    $(".row-suspended-time").stop().show(300);
+                }
+            });
+
+            $("#car-model-field, #vehicle-modal-car-model").on('change', function() {
+                var id_selected = $(this).val();
+                var option_selected = $(this).find("option[value=" + id_selected + "]");
+                var model_picture = $(option_selected).attr('data-picture');
+
+                if (!model_picture) {
+                    model_picture = no_picture;
+                }
+
+                $(".car-model-picture").attr("src", model_picture);
+            });
+
+            $("#add-vehicle").change();
+
+            @if (
+                $user &&
+                    array_key_exists('vehicle', $user) &&
+                    array_key_exists('car_model_id', $user['vehicle']) &&
+                    !empty($user['vehicle']['car_model_id']))
+                $("#car-model-field").change();
+            @endif
         });
 
-        /**
-         * Change cover picture
-         */
-        $(".input-group-cover").on('click', function() {
-            $("#cover_picture").click();
-        });
+        window.makeWizard = function($selector, $params) {
+            $validator = false;
 
-        /**
-         * Resume modal
-         */
-        $(".view-resume").on('click', function() {
-            let resume = $(this).attr('data-resume');
-            let tables = ['event', 'class'];
-            let ignore_fields = ['id', 'created_by', 'created_at', 'updated_at'];
-            let fields_date = ['date', 'date_limit', 'start_subscription_date', 'unsubscribe_date_limit'];
+            // Validate params
+            if (!$params)
+                $params = {};
 
-            let exists_value = false;
+            if ($params.validator)
+                $validator = $params.validator;
 
-            $("#table-resume").find('tbody').html('');
+            // Default params ////
+            if (!$params.nextSelector) $params.nextSelector = '.btn-next';
+            if (!$params.previousSelector) $params.previousSelector = '.btn-previous';
+            if (!$params.finishSelector) $params.finishSelector = '.btn-finish';
+            if (!$params.loadingSelector) $params.loadingSelector = '.loading-wizard';
+            if (!$params.animation) $params.animation = 'none';
+            if (!$params.pictureSelector) $params.pictureSelector = '.wizard-picture';
+            if (!$params.pictureRemoveSelector) $params.pictureRemoveSelector = '.wizard-picture-remove';
 
-            if (resume) {
-                resume = JSON.parse(resume);
-            } else {
-                resume = false;
+            // Wizard Initialization
+            $bootstrapWizard = $($selector).bootstrapWizard({
+                'tabClass': 'nav nav-pills',
+                'nextSelector': $params.nextSelector,
+                'previousSelector': $params.previousSelector,
+
+                onNext: function(tab, navigation, index) {
+                    // Call onNext callback in params
+                    if ($params.onNext)
+                        $params.onNext(tab, navigation, index);
+
+                    var $valid = $($selector + ' form').valid();
+
+                    if (!$valid) {
+                        if ($validator)
+                            $validator.focusInvalid();
+
+                        return false;
+                    }
+                },
+
+                onInit: function(tab, navigation, index) {
+                    // Call onInit callback in params
+                    if ($params.onInit)
+                        $params.onInit(tab, navigation, index);
+
+                    if ($params.animation != "none")
+                        showWizard($params.animation);
+
+                    //check number of tabs and fill the entire row
+                    var $total = navigation.find('li').length;
+                    var $wizard = navigation.closest($selector);
+
+                    $first_li = navigation.find('li:first-child a').html();
+                    $moving_div = $('<div class="moving-tab">' + $first_li + '</div>');
+                    $($selector + ' .wizard-navigation').append($moving_div);
+
+                    refreshAnimation($wizard, index);
+
+                    $('.moving-tab').css('transition', 'transform 0s');
+                },
+
+                onTabClick: function(tab, navigation, index) {
+                    // Call onTabClick callback in params
+                    if ($params.onTabClick)
+                        $params.onTabClick(tab, navigation, index);
+
+                    var $valid = $($selector + ' form').valid();
+
+                    if (!$valid) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                },
+
+                onTabShow: function(tab, navigation, index) {
+                    // Call onTabShow callback in params
+                    if ($params.onTabShow)
+                        $params.onTabShow(tab, navigation, index);
+
+                    var $total = navigation.find('li').length;
+                    var $current = index + 1;
+
+                    var $wizard = navigation.closest($selector);
+
+                    // If it's the last tab then hide the last button and show the finish instead
+                    if ($current >= $total) {
+                        $($wizard).find($params.nextSelector).hide();
+                        $($wizard).find($params.finishSelector).show();
+                    } else {
+                        $($wizard).find($params.nextSelector).show();
+                        $($wizard).find($params.finishSelector).hide();
+                    }
+
+                    button_text = navigation.find('li:nth-child(' + $current + ') a').html();
+                    // console.log("TEXT = ", button_text);
+                    // button_text.find("i").css("display", "block");
+
+
+                    setTimeout(function() {
+                        $('.moving-tab').html('').append(button_text);
+                    }, 150);
+
+                    var checkbox = $('.footer-checkbox');
+
+                    if (!index == 0) {
+                        $(checkbox).css({
+                            'opacity': '0',
+                            'visibility': 'hidden',
+                            'position': 'absolute'
+                        });
+                    } else {
+                        $(checkbox).css({
+                            'opacity': '1',
+                            'visibility': 'visible'
+                        });
+                    }
+
+                    refreshAnimation($wizard, index);
+                }
+            });
+
+            // Prepare the preview for profile picture
+            $($params.pictureSelector).change(function() {
+                readURL(this, $(this).attr("data-preview"));
+            });
+
+            $('[data-toggle="wizard-radio"]').click(function() {
+                wizard = $(this).closest($selector);
+                wizard.find('[data-toggle="wizard-radio"]').removeClass('active');
+                $(this).addClass('active');
+                $(wizard).find('[type="radio"]').removeAttr('checked');
+                $(this).find('[type="radio"]').attr('checked', 'true');
+            });
+
+            $('[data-toggle="wizard-checkbox"]').click(function() {
+                if ($(this).hasClass('active')) {
+                    $(this).removeClass('active');
+                    $(this).find('[type="checkbox"]').removeAttr('checked');
+                } else {
+                    $(this).addClass('active');
+                    $(this).find('[type="checkbox"]').attr('checked', 'true');
+                }
+            });
+
+            $('.set-full-height').css('height', 'auto');
+
+            // Function to show image before upload
+            function readURL(input, preview_selector) {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        $(preview_selector).attr('src', e.target.result).fadeIn('slow');
+
+                        if ($($params.pictureRemoveSelector))
+                            $($params.pictureRemoveSelector).val('false');
+                    }
+
+                    reader.readAsDataURL(input.files[0]);
+                }
             }
 
-            if (resume) {
-                $(tables).each(function(i_table, table) {
-                    if (resume[table] && Object.keys(resume[table]).length > 0) {
-                        let this_resume = resume[table];
+            $(window).resize(function() {
+                $($selector).each(function() {
+                    $wizard = $(this);
 
-                        $(this_resume).each(function(i_resume_fields, resume_fields) {
-                            let field_keys = Object.keys(resume_fields);
+                    index = $wizard.bootstrapWizard('currentIndex');
+                    refreshAnimation($wizard, index);
 
-                            if (table == 'class') {
-                                $(field_keys).each(function(i_class_key, v_class) {
-                                    if (this_resume[v_class]) {
-                                        $(this_resume[v_class]).each(function(i_class_data,
-                                            class_data) {
-                                            $(class_data).each(function(
-                                                i_class_field_keys,
-                                                class_field_keys) {
+                    $('.moving-tab').css({
+                        'transition': 'transform 0s'
+                    });
+                });
+            });
 
-                                                /**
-                                                 * Get keys of class history
-                                                 */
-                                                $(Object.keys(
-                                                    class_field_keys
-                                                )).each(function(
-                                                    i_class_field_key,
-                                                    class_field_key
-                                                ) {
-                                                    let class_field_value =
-                                                        class_field_keys[
-                                                            class_field_key
-                                                        ];
-                                                    let class_field_key_lang =
-                                                        Lang.get(
-                                                            'events.form.class.' +
-                                                            class_field_key
-                                                        );
+            function refreshAnimation($wizard, index) {
+                $total = $wizard.find('.nav li').length;
+                $li_width = 100 / $total;
 
-                                                    if (ignore_fields
-                                                        .indexOf(
-                                                            class_field_key
-                                                        ) !== -1
-                                                    ) {
-                                                        return true; // Continue
-                                                    }
+                total_steps = $wizard.find('.nav li').length;
+                move_distance = $wizard.width() / total_steps;
+                index_temp = index;
+                vertical_level = 0;
 
-                                                    exists_value =
-                                                        true;
+                mobile_device = $(document).width() < 600 && $total > 3;
 
-                                                    var line = $(
-                                                        "<tr></tr>"
-                                                    );
+                if (mobile_device) {
+                    move_distance = $wizard.width() / 2;
+                    index_temp = index % 2;
+                    $li_width = 50;
+                }
 
-                                                    // var field_value = resume_fields[table][class_data][class_field_key];
-                                                    var old_field_value =
-                                                        "-";
+                $wizard.find('.nav li').css('width', $li_width + '%');
 
+                step_width = move_distance;
+                move_distance = move_distance * index_temp;
 
-                                                    if (resume[
-                                                            'old_' +
-                                                            table
-                                                        ] &&
-                                                        resume[
-                                                            'old_' +
-                                                            table][
-                                                            v_class
-                                                        ] && resume[
-                                                            'old_' +
-                                                            table][
-                                                            v_class
-                                                        ][
-                                                            class_field_key
-                                                        ]
-                                                    ) {
-                                                        old_field_value
-                                                            =
-                                                            resume[
-                                                                'old_' +
-                                                                table
-                                                            ][
-                                                                v_class
-                                                            ][
-                                                                class_field_key
-                                                            ];
-                                                    }
+                $current = index + 1;
 
-                                                    if (fields_date
-                                                        .indexOf(
-                                                            class_field_key
-                                                        ) !== -1
-                                                    ) {
-                                                        old_field_value
-                                                            =
-                                                            dateDatabaseToBr(
-                                                                old_field_value
-                                                            );
-                                                        class_field_value
-                                                            =
-                                                            dateDatabaseToBr(
-                                                                class_field_value
-                                                            );
-                                                    }
+                if ($current == 1 || (mobile_device == true && (index % 2 == 0))) {
+                    move_distance -= 8;
+                } else if ($current == total_steps || (mobile_device == true && (index % 2 == 1))) {
+                    move_distance += 8;
+                }
 
-                                                    if (class_field_key ==
-                                                        'active') {
-                                                        console.log(
-                                                            old_field_value
-                                                        );
-                                                        old_field_value
-                                                            = (old_field_value ==
-                                                                'true' ||
-                                                                old_field_value ==
-                                                                true
-                                                            ) ?
-                                                            Lang
-                                                            .get(
-                                                                'general.active'
-                                                            ) :
-                                                            Lang
-                                                            .get(
-                                                                'general.inactive'
-                                                            );
-                                                        class_field_value
-                                                            = (class_field_value ==
-                                                                'true' ||
-                                                                class_field_value ==
-                                                                true
-                                                            ) ?
-                                                            Lang
-                                                            .get(
-                                                                'general.active'
-                                                            ) :
-                                                            Lang
-                                                            .get(
-                                                                'general.inactive'
-                                                            );
-                                                    }
+                if (mobile_device) {
+                    vertical_level = parseInt(index / 2);
+                    vertical_level = vertical_level * 38;
+                }
 
-                                                    if (
-                                                        class_field_value
-                                                    ) {
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    `<i class="material-icons icon-` +
-                                                                    v_class +
-                                                                    `">emoji_events</i> ` +
-                                                                    class_field_key_lang
-                                                                )
-                                                            );
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    old_field_value
-                                                                )
-                                                            );
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    class_field_value
-                                                                )
-                                                            );
+                $wizard.find('.moving-tab').css('width', step_width);
+                $('.moving-tab').css({
+                    'transform': 'translate3d(' + move_distance + 'px, ' + vertical_level + 'px, 0)',
+                    'transition': 'all 0.5s cubic-bezier(0.29, 1.42, 0.79, 1)'
 
-                                                        $("#table-resume")
-                                                            .find(
-                                                                'tbody'
-                                                            )
-                                                            .append(
-                                                                line
-                                                            );
-                                                    }
-                                                });
-                                            })
-
-                                        });
-                                    }
-                                });
-                            } else {
-                                $(field_keys).each(function(i_field_key, field_key) {
-                                    if (ignore_fields.indexOf(field_key) !== -1) {
-                                        return true; // Continue
-                                    }
-
-                                    exists_value = true;
-
-                                    let line = $("<tr></tr>");
-
-                                    let field_value = resume_fields[field_key];
-                                    let field_key_lang = Lang.get('events.form.' +
-                                        field_key);
-                                    let old_field_value = "-";
-
-                                    if (resume['old_' + table] && resume['old_' + table][
-                                            field_key
-                                        ]) {
-                                        old_field_value = resume['old_' + table][field_key];
-                                    }
-
-                                    // Cover Picture
-                                    if (field_key == 'cover_picture') {
-                                        if (old_field_value && old_field_value != '-') {
-                                            // old_field_value = Lang.get('events.history.removed');
-                                            old_field_value = `<div class="cover-wrapper">
-                                                <img src="` + old_field_value + `" class='cover-img' />
-                                            </div>`
-                                        }
-
-                                        field_value = `
-                                            <div class="cover-wrapper">
-                                                <img src="` + field_value + `" class='cover-img' />
-                                            </div>
-                                        `;
-                                    }
-
-                                    if (fields_date.indexOf(field_key) !== -1) {
-                                        old_field_value = dateDatabaseToBr(old_field_value);
-                                        field_value = dateDatabaseToBr(field_value);
-                                    }
-
-                                    if (field_value) {
-                                        $(line).append($("<td></td>").html(
-                                            `<i class="material-icons icon-event">info_outline</i> ` +
-                                            field_key_lang));
-                                        $(line).append($("<td></td>").html(
-                                            old_field_value));
-                                        $(line).append($("<td></td>").html(field_value));
-
-                                        $("#table-resume").find('tbody').append(line);
-                                    }
-
-                                });
-                            }
-                        })
-                    }
                 });
             }
 
-            if (!exists_value) {
-                $("#table-resume").find('tbody').append(
-                    $("<td></td>", {
-                        'colspan': '100%',
-                        'style': "font-weight: bold; text-align: center; padding-top: 12px; font-size: 1.25em;"
-                    }).html("{{ __('events.resume.no-records') }}")
-                );
+            /**
+             * Show wizard with animation
+             * @param string animation
+             * @author Davi Souto
+             * @since 06/06/2020
+             */
+            function showWizard(animation) {
+                if (animation == "fade") {
+                    $($params.loadingSelector).fadeOut(260, function() {
+                        $($selector).fadeIn(600);
+                    });
+                }
             }
 
-            $("#resume-modal").modal('show');
-        })
+            /**
+             * Remove wizard picture
+             * @author Davi Souto
+             * @since 09/06/2020
+             */
+            $($($params.pictureRemoveSelector).attr("data-dispatch")).on('click', function() {
+                $($params.pictureSelector).val('');
+                $($($params.pictureSelector).attr("data-preview")).attr("src", $($params.pictureSelector).attr(
+                    "data-default"));
 
-        /**
-         * Change cover picture
-         */
-        $(".input-group-cover").on('click', function() {
-            $("#cover_picture").click();
+                $($params.pictureRemoveSelector).val('true');
+            })
+
+            setTimeout(function() {
+                $($selector).addClass('active');
+            }, 600);
+
+            $bootstrapWizard.$params = $params;
+
+            return $bootstrapWizard;
+        }
+
+        function showVehicleModal(vehicle_id) {
+            $('#vehicle-modal').modal('show');
+
+            if (vehicle_id) {
+                getVehicleData(vehicle_id);
+
+                update_vehicle_id = vehicle_id;
+            } else {
+                $("#vehicle-form").show();
+                $("#vehicle-form").find('.selectpicker').selectpicker('refresh');
+                $(".car-model-picture").attr('src', '{{ asset('images/icons/no-image-icon.png') }}');
+
+                $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
+
+                update_vehicle_id = false;
+            }
+        }
+
+        function getVehicleData(vehicle_id) {
+            $(".loading-modal").show();
+
+            $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', true).attr('disabled', true);
+
+            $.ajax({
+                url: "{{ route('api.vehicles.get') }}/" + vehicle_id,
+                method: "GET"
+            }).then(function(response) {
+                if (response.status == 'success') {
+                    let vehicle = response.data;
+
+                    $("#vehicle-modal-carplate").val(vehicle.carplate);
+                    $("#vehicle-modal-renavam").val(vehicle.document_renavam);
+                    $("#vehicle-modal-chassis").val(vehicle.chassis);
+                    $("#vehicle-modal-carplate").change();
+                    $("#vehicle-modal-renavam").change();
+                    $("#vehicle-modal-chassis").change();
+
+                    if (vehicle.car_model) {
+                        $("#vehicle-modal-car-model").val(vehicle.car_model.id);
+                    }
+
+                    if (vehicle.car_color) {
+                        $("#vehicle-modal-car-color").val(vehicle.car_color.id);
+                    }
+
+                    if (vehicle.year_manufacture) {
+                        $("#vehicle-modal-year-manufacture").val(vehicle.year_manufacture);
+                    }
+
+                    if (vehicle.model_year) {
+                        $("#vehicle-modal-model-year").val(vehicle.model_year);
+                    }
+                    $(".loading-modal").hide();
+                    $("#vehicle-form").show();
+                    $("#vehicle-form").find('.selectpicker').selectpicker('refresh');
+                    $("#vehicle-modal-car-model").change();
+
+                    $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
+                    // $(".loading-modal").hide(function(){
+                    //     $("#vehicle-form").show(325);
+                    // }, 250);
+                } else showError("Ops, ocorreu um erro: " + response.message);
+            }).catch(function(err) {
+                console.log("Erro:", err);
+                showError("Ops, ocorreu um erro: " + err);
+            });
+        }
+
+        function saveVehicle() {
+            var action = create_vehicle_action;
+
+            if (update_vehicle_id) {
+                action = update_vehicle_action + '/' + update_vehicle_id;
+            }
+
+            $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', true).attr('disabled', true);
+            $("#vehicle-modal .modal-footer").find(".loading").show();
+
+            $.ajax({
+                method: 'POST',
+                url: action,
+                data: $("#vehicle-form").serializeObject(),
+            }).then(function(response) {
+                $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
+                $("#vehicle-modal .modal-footer").find(".loading").hide();
+
+                if (response && response.status == 'success') {
+                    showSuccess(response.message);
+
+                    let vehicle = response.data;
+
+                    if (!update_vehicle_id) {
+                        var clone_line = $("#vehicles-table").find('.vehicle-table-line.dont-remove').clone();
+
+                        $(clone_line).removeClass('dont-remove');
+                        $(clone_line).attr('data-vehicle-id', vehicle.id);
+
+                        $(clone_line).find('.vehicle-photos-rows').attr('id', 'vehicle-photos-' + vehicle.id);
+                        $(clone_line).find('.add_vehicle_photo').attr('id', 'add_vehicle_photo_' + vehicle.id).attr(
+                            'onchange', 'uploadVehiclePhoto(' + vehicle.id + ')');
+                        $(clone_line).find('.btn-add-vehicle-photo').on('click', function() {
+                            $('#add_vehicle_photo_' + vehicle.id).click();
+                        });
+                        $('onclick', "$('#add_vehicle_photo_" +  + "').click()");
+
+                        $("#vehicles-table").append(clone_line);
+                    }
+
+                    let line = $("#vehicles-table").find(".vehicle-table-line[data-vehicle-id='" + vehicle.id +
+                        "']");
+
+                    $(line).find('.col-carplate').html(vehicle.carplate_formatted || '-');
+
+                    if (vehicle.car_model) {
+                        $(line).find('.col-model').find('.car-model-text')
+                            .html( /* vehicle.car_model.car_brand.name + ' ' + */ vehicle.car_model.name);
+
+                        if (vehicle.car_model.picture_url) {
+                            $(line).find('.col-model').find('.car-model-picture-inside').attr('src', vehicle
+                                .car_model.picture_url);
+                        }
+                    }
+
+                    if (vehicle.car_color) {
+                        $(line).find('.col-color').find('.color-box').css({
+                            'background-color': vehicle.car_color.value
+                        });
+                        $(line).find('.col-color').find('.color-text').html(vehicle.car_color.name);
+                    }
+
+                    $(line).find('.btn-edit-vehicle').attr('onclick', 'showVehicleModal(' + vehicle.id + ')');
+                    $(line).find('.btn-remove-vehicle').attr('onclick', 'removeVehicle(' + vehicle.id + ')');
+
+                    console.log(line);
+                    $(line).show();
+
+                    $(".no-vehicle").hide();
+
+                    $('#vehicle-modal').modal('hide');
+                } else {
+                    let error = "Ocorreu um erro ao salvar o veículo";
+
+                    if (response && response.message) {
+                        error = response.message;
+                    }
+
+                    $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
+                    $("#vehicle-modal .modal-footer").find(".loading").hide();
+
+                    showError(error);
+                }
+            }).catch(function(err) {
+                console.log("Erro:", err);
+                showError("Ops, ocorreu um erro: " + err);
+            })
+        }
+
+        function removeVehicle(vehicle_id) {
+            if (!vehicle_id) {
+                showError("Veículo não encontrado");
+            }
+
+            Swal.fire({
+                title: '{{ __('general.confirm-delete.title') }}',
+                text: '{{ __('general.confirm-delete.text') }}',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: '{{ __('general.confirm-delete.confirm') }}',
+                cancelButtonText: '{{ __('general.confirm-delete.cancel') }}',
+            }).then((result) => {
+                if (result.value) {
+                    showLoading();
+
+                    $.ajax({
+                        method: 'POST',
+                        url: "{{ route('api.vehicles.delete') }}/" + vehicle_id,
+                    }).then(function(response) {
+                        hideLoading();
+
+                        if (response && response.status == 'success') {
+                            showSuccess(response.message);
+
+                            $("#vehicles-table").find(".vehicle-table-line[data-vehicle-id='" + vehicle_id +
+                                "']").remove();
+                        } else {
+                            let error = "Ocorreu um erro ao remover o veículo";
+
+                            if (response && response.message) {
+                                error = response.message;
+                            }
+
+                            showError(error);
+                        }
+                    }).catch(function(err) {
+                        console.log("Erro:", err);
+                        showError("Ops, ocorreu um erro: " + err);
+                    });
+                }
+            });
+        }
+
+        function showError(msg) {
+            Swal.fire({
+                title: '{{ __('general.fail') }}',
+                text: msg,
+                icon: 'error',
+            });
+        }
+
+        function showSuccess(msg) {
+            Swal.fire({
+                title: '{{ __('general.success') }}',
+                text: msg,
+                icon: 'success',
+            });
+        }
+
+        $('#vehicle-modal').on('hidden.bs.modal', function() {
+            $('#vehicle-form')[0].reset();
+            $("#vehicle-form").hide();
+            $("#loading-modal").hide();
         });
 
-        /**
-         * Resume modal
-         */
-        $(".view-resume").on('click', function() {
-            let resume = $(this).attr('data-resume');
-            let tables = ['event', 'class'];
-            let ignore_fields = ['id', 'created_by', 'created_at', 'updated_at'];
-            let fields_date = ['date', 'date_limit', 'start_subscription_date', 'unsubscribe_date_limit'];
+        function uploadVehiclePhoto(vehicle_id) {
+            let photo = $("#add_vehicle_photo_" + vehicle_id).val();
 
-            let exists_value = false;
+            if (photo) {
+                let data = new FormData();
 
-            $("#table-resume").find('tbody').html('');
+                data.append('photo', $('#add_vehicle_photo_' + vehicle_id)[0].files[0]);
 
-            if (resume) {
-                resume = JSON.parse(resume);
-            } else {
-                resume = false;
-            }
+                showLoading();
 
-            if (resume) {
-                $(tables).each(function(i_table, table) {
-                    if (resume[table] && Object.keys(resume[table]).length > 0) {
-                        let this_resume = resume[table];
+                $.ajax({
+                    method: 'POST',
+                    url: "/api/vehicles/" + vehicle_id + "/photo/upload",
+                    headers: {
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    data: data,
+                    dataType: 'JSON',
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                }).then(function(response) {
+                    if (response && response.status == 'success') {
+                        let data = response.data;
 
-                        $(this_resume).each(function(i_resume_fields, resume_fields) {
-                            let field_keys = Object.keys(resume_fields);
+                        $("#vehicle-photos-" + vehicle_id).prepend(`
+                            <div class="photo-container" id="photo-` + data.id + `">
+                                <a href="` + data.photo + `" class="thumbnail">
+                                    <img src="` + data.photo +
+                            `" alt="" class="user-vehicle-photo">
+                                </a>
+                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removeVehiclePhoto(` +
+                            vehicle_id + `, ` + data.id + `)">Remover foto</button>
+                            </div>
+                        `);
 
-                            if (table == 'class') {
-                                $(field_keys).each(function(i_class_key, v_class) {
-                                    if (this_resume[v_class]) {
-                                        $(this_resume[v_class]).each(function(i_class_data,
-                                            class_data) {
-                                            $(class_data).each(function(
-                                                i_class_field_keys,
-                                                class_field_keys) {
+                        triggerAddPhotoVisible(vehicle_id);
+                        hideLoading();
+                    } else {
+                        hideLoading();
 
-                                                /**
-                                                 * Get keys of class history
-                                                 */
-                                                $(Object.keys(
-                                                    class_field_keys
-                                                )).each(function(
-                                                    i_class_field_key,
-                                                    class_field_key
-                                                ) {
-                                                    let class_field_value =
-                                                        class_field_keys[
-                                                            class_field_key
-                                                        ];
-                                                    let class_field_key_lang =
-                                                        Lang.get(
-                                                            'events.form.class.' +
-                                                            class_field_key
-                                                        );
+                        let error = "Ocorreu um erro";
 
-                                                    if (ignore_fields
-                                                        .indexOf(
-                                                            class_field_key
-                                                        ) !== -1
-                                                    ) {
-                                                        return true; // Continue
-                                                    }
+                        if (response && response.message) {
+                            error = response.message;
+                        }
 
-                                                    exists_value =
-                                                        true;
-
-                                                    var line = $(
-                                                        "<tr></tr>"
-                                                    );
-
-                                                    // var field_value = resume_fields[table][class_data][class_field_key];
-                                                    var old_field_value =
-                                                        "-";
-
-
-                                                    if (resume[
-                                                            'old_' +
-                                                            table
-                                                        ] &&
-                                                        resume[
-                                                            'old_' +
-                                                            table][
-                                                            v_class
-                                                        ] && resume[
-                                                            'old_' +
-                                                            table][
-                                                            v_class
-                                                        ][
-                                                            class_field_key
-                                                        ]
-                                                    ) {
-                                                        old_field_value
-                                                            =
-                                                            resume[
-                                                                'old_' +
-                                                                table
-                                                            ][
-                                                                v_class
-                                                            ][
-                                                                class_field_key
-                                                            ];
-                                                    }
-
-                                                    if (fields_date
-                                                        .indexOf(
-                                                            class_field_key
-                                                        ) !== -1
-                                                    ) {
-                                                        old_field_value
-                                                            =
-                                                            dateDatabaseToBr(
-                                                                old_field_value
-                                                            );
-                                                        class_field_value
-                                                            =
-                                                            dateDatabaseToBr(
-                                                                class_field_value
-                                                            );
-                                                    }
-
-                                                    if (class_field_key ==
-                                                        'active') {
-                                                        console.log(
-                                                            old_field_value
-                                                        );
-                                                        old_field_value
-                                                            = (old_field_value ==
-                                                                'true' ||
-                                                                old_field_value ==
-                                                                true
-                                                            ) ?
-                                                            Lang
-                                                            .get(
-                                                                'general.active'
-                                                            ) :
-                                                            Lang
-                                                            .get(
-                                                                'general.inactive'
-                                                            );
-                                                        class_field_value
-                                                            = (class_field_value ==
-                                                                'true' ||
-                                                                class_field_value ==
-                                                                true
-                                                            ) ?
-                                                            Lang
-                                                            .get(
-                                                                'general.active'
-                                                            ) :
-                                                            Lang
-                                                            .get(
-                                                                'general.inactive'
-                                                            );
-                                                    }
-
-                                                    if (
-                                                        class_field_value
-                                                    ) {
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    `<i class="material-icons icon-` +
-                                                                    v_class +
-                                                                    `">emoji_events</i> ` +
-                                                                    class_field_key_lang
-                                                                )
-                                                            );
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    old_field_value
-                                                                )
-                                                            );
-                                                        $(line)
-                                                            .append(
-                                                                $(
-                                                                    "<td></td>"
-                                                                )
-                                                                .html(
-                                                                    class_field_value
-                                                                )
-                                                            );
-
-                                                        $("#table-resume")
-                                                            .find(
-                                                                'tbody'
-                                                            )
-                                                            .append(
-                                                                line
-                                                            );
-                                                    }
-                                                });
-                                            })
-
-                                        });
-                                    }
-                                });
-                            } else {
-                                $(field_keys).each(function(i_field_key, field_key) {
-                                    if (ignore_fields.indexOf(field_key) !== -1) {
-                                        return true; // Continue
-                                    }
-
-                                    exists_value = true;
-
-                                    let line = $("<tr></tr>");
-
-                                    let field_value = resume_fields[field_key];
-                                    let field_key_lang = Lang.get('events.form.' +
-                                        field_key);
-                                    let old_field_value = "-";
-
-                                    if (resume['old_' + table] && resume['old_' + table][
-                                            field_key
-                                        ]) {
-                                        old_field_value = resume['old_' + table][field_key];
-                                    }
-
-                                    // Cover Picture
-                                    if (field_key == 'cover_picture') {
-                                        if (old_field_value && old_field_value != '-') {
-                                            // old_field_value = Lang.get('events.history.removed');
-                                            old_field_value = `<div class="cover-wrapper">
-                                                <img src="` + old_field_value + `" class='cover-img' />
-                                            </div>`
-                                        }
-
-                                        field_value = `
-                                            <div class="cover-wrapper">
-                                                <img src="` + field_value + `" class='cover-img' />
-                                            </div>
-                                        `;
-                                    }
-
-                                    if (fields_date.indexOf(field_key) !== -1) {
-                                        old_field_value = dateDatabaseToBr(old_field_value);
-                                        field_value = dateDatabaseToBr(field_value);
-                                    }
-
-                                    if (field_value) {
-                                        $(line).append($("<td></td>").html(
-                                            `<i class="material-icons icon-event">info_outline</i> ` +
-                                            field_key_lang));
-                                        $(line).append($("<td></td>").html(
-                                            old_field_value));
-                                        $(line).append($("<td></td>").html(field_value));
-
-                                        $("#table-resume").find('tbody').append(line);
-                                    }
-
-                                });
-                            }
-                        })
+                        showError(error);
                     }
-                });
+                }).catch(function(err) {
+                    hideLoading();
+
+                    console.log("Erro:", err);
+                    showError("Ops, ocorreu um erro: " + err);
+                })
+            }
+        }
+
+        function uploadPhotoWithoutVehicle() {
+            let data = new FormData();
+
+            data.append('photo', $('#add_photo_without_vehicle')[0].files[0]);
+
+            showLoading();
+
+            $.ajax({
+                method: 'POST',
+                url: "/api/photo-without-vehicle",
+                headers: {
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                data: data,
+                dataType: 'JSON',
+                contentType: false,
+                cache: false,
+                processData: false,
+            }).then(function(response) {
+                if (response && response.status == 'success') {
+                    let uploaded_photo = response.data;
+                    let photo_id = Math.floor(Math.random() * 100000);
+
+                    $("#vehicle-photos").prepend(`
+                            <div class="photo-container" id="photo-` + photo_id + `">
+                                <a href="` + uploaded_photo + `" class="thumbnail">
+                                    <img src="` + uploaded_photo +
+                        `" alt="" class="user-vehicle-photo">
+                                </a>
+                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removePhotoWithoutVehicle(` +
+                        photo_id + `)">Remover foto</button>
+                            </div>
+                        `);
+
+                    photo_without_vehicle[photo_id] = uploaded_photo;
+
+                    triggerAddPhotoVisible();
+                    populateAddPhotos();
+                    hideLoading();
+                } else {
+                    hideLoading();
+
+                    let error = "Ocorreu um erro";
+
+                    if (response && response.message) {
+                        error = response.message;
+                    }
+
+                    showError(error);
+                }
+            }).catch(function(err) {
+                hideLoading();
+
+                console.log("Erro:", err);
+                showError("Ops, ocorreu um erro: " + err);
+            })
+        }
+
+        function removeVehiclePhoto(vehicle_id, photo_id) {
+            showLoading();
+
+            $.ajax({
+                method: 'POST',
+                url: "/api/vehicles/" + vehicle_id + "/photo/" + photo_id + "/delete",
+                headers: {
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+            }).then(function(response) {
+                if (response && response.status == 'success') {
+                    $("#photo-" + photo_id).remove();
+
+                    triggerAddPhotoVisible(vehicle_id);
+                    hideLoading();
+                } else {
+                    hideLoading();
+
+                    let error = "Ocorreu um erro";
+
+                    if (response && response.message) {
+                        error = response.message;
+                    }
+
+                    showError(error);
+                }
+            }).catch(function(err) {
+                hideLoading();
+
+                console.log("Erro:", err);
+                showError("Ops, ocorreu um erro: " + err);
+            });
+        }
+
+        function removePhotoWithoutVehicle(photo_id) {
+            delete photo_without_vehicle[photo_id];
+
+            $("#photo-" + photo_id).remove();
+
+            triggerAddPhotoVisible();
+            populateAddPhotos();
+        }
+
+        function triggerAddPhotoVisible(vehicle_id) {
+            let find = "#vehicle-photos";
+
+            if (vehicle_id) {
+                find += "-" + vehicle_id;
             }
 
-            if (!exists_value) {
-                $("#table-resume").find('tbody').append(
-                    $("<td></td>", {
-                        'colspan': '100%',
-                        'style': "font-weight: bold; text-align: center; padding-top: 12px; font-size: 1.25em;"
-                    }).html("{{ __('events.resume.no-records') }}")
-                );
+            let qtd_photos = $(find).find(".photo-container").length;
+
+            if (qtd_photos >= 5) {
+                $(find).parent().find(".add-vehicle-photo-container").hide();
+            } else {
+                $(find).parent().find(".add-vehicle-photo-container").show();
             }
+        }
 
-            $("#resume-modal").modal('show');
-        })
+        function populateAddPhotos() {
+            $("#add-photos-inputs").find("input").remove();
 
-        /**
-         * Change event address
-         */
-        function changeEventAddress() {
+            Object.keys(photo_without_vehicle).forEach(function(key) {
+                var add_photo = photo_without_vehicle[key];
 
-            prefix = "event";
+                $("#add-photos-inputs").append(`<input type="hidden" name="vehicle[add_photo][]" value="` +
+                    add_photo + `" >`);
+            });
+        }
 
+        function changeResidentialAddress() {
+            return changeAddress('home');
+        }
+
+        function changeCommercialAddress() {
+            return changeAddress('commercial');
+        }
+
+        function changeAddress(prefix) {
             if ($("#" + prefix + "_address_zip_code").val()) {
-                $("#address_zip_code").val($("#" + prefix + "_address_zip_code").val()).change();
-                $("#address_state").val($("#" + prefix + "_address_state").val()).change();
-                $("#address_city").val($("#" + prefix + "_address_city").val()).change();
-                $("#address_neighborhood").val($("#" + prefix + "_address_neighborhood").val()).change();
-                $("#address_street").val($("#" + prefix + "_address_street_address").val()).change();
-                $("#address_number").val($("#" + prefix + "_address_number").val()).change();
-                $("#address_complement").val($("#" + prefix + "_address_complement").val()).change();
+                $("#address_zip_code").val($("#" + prefix + "_address_zip_code").val()).change().valid();
+                $("#address_state").val($("#" + prefix + "_address_state").val()).change().valid();
+                $("#address_city").val($("#" + prefix + "_address_city").val()).change().valid();
+                $("#address_neighborhood").val($("#" + prefix + "_address_neighborhood").val()).change().valid();
+                $("#address_street").val($("#" + prefix + "_address_street_address").val()).change().valid();
+                $("#address_number").val($("#" + prefix + "_address_number").val()).change().valid();
+                $("#address_complement").val($("#" + prefix + "_address_complement").val()).change().valid();
 
                 $("#address_state").selectpicker('refresh');
             }
 
             $('#address-modal').modal('show');
+            $("#address-modal").find('#address_prefix').val(prefix);
         }
 
-        function saveAddress() {
-            if ($("#address_zip_code").val() == "" || $("#address_state").val() == "" || $("#address_city").val() == "" ||
-                $("#address_street").val() == "" || $("#address_number").val() == "") {
-
-                let invalidField = '';
-                if ($("#address_zip_code").val() == '') {
-                    invalidField = 'CEP';
-                } else if ($("#address_state").val() == '') {
-                    invalidField = 'Estado';
-                } else if ($("#address_city").val() == '') {
-                    invalidField = 'Cidade';
-                } else if ($("#address_street").val() == '') {
-                    invalidField = 'Logradouro';
-                } else if ($("#address_number").val() == '') {
-                    invalidField = 'Número';
-                }
-
-                swal.fire({
-                    title: 'Atenção',
-                    text: 'Campo inválido: ' + invalidField,
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-                return false;
-            }
-
-            // Save the address
-            const address_prefix = "event";
-
-            $("#" + address_prefix + "_address_zip_code").val($("#address_zip_code").val());
-            $("#" + address_prefix + "_address_state").val($("#address_state").val());
-            $("#" + address_prefix + "_address_city").val($("#address_city").val());
-            $("#" + address_prefix + "_address_neighborhood").val($("#address_neighborhood").val());
-            $("#" + address_prefix + "_address_street_address").val($("#address_street").val());
-            $("#" + address_prefix + "_address_number").val($("#address_number").val());
-            $("#" + address_prefix + "_address_complement").val($("#address_complement").val());
-
-            generateAddessesResume();
-
-            $("#" + address_prefix + "-address-add-div").hide();
-            $("#" + address_prefix + "-address-change-div").show();
-
-            $("#address-modal").modal('hide');
-
-            return false;
-        }
-
-        /**
-         * Find address by cep
-         * @return Object
-         */
         function findAddressByCep() {
             let cep = $("#address_zip_code").val();
 
@@ -1456,28 +1137,24 @@
                     "X-CSRF-TOKEN": "{{ csrf_token() }}"
                 },
             }).then((response) => {
-
-                console.log(response);
-
                 if (response.status == 'success') {
-
                     let data = response.data;
 
                     $("#address_state").val(data.state_initials);
                     $("#address_state").selectpicker('refresh');
-                    // $("#address_state").valid();
+                    $("#address_state").valid();
 
                     $("#address_city").val(data.city);
                     $("#address_city").change();
-                    // $("#address_city").valid();
+                    $("#address_city").valid();
 
                     $("#address_neighborhood").val(data.neighborhood);
                     $("#address_neighborhood").change();
-                    // $("#address_neighborhood").valid();
+                    $("#address_neighborhood").valid();
 
                     $("#address_street").val(data.street_address);
                     $("#address_street").change();
-                    // $("#address_street").valid();
+                    $("#address_street").valid();
 
                     if (data.complement) {
                         $("#address_complement").val(data.complement);
@@ -1488,14 +1165,13 @@
                         $("#address_number").focus();
                     }, 20);
                 } else {
-
                     $("#address_state").val('');
                     $("#address_state").selectpicker('refresh');
-                    // $("#address_state").valid();
+                    $("#address_state").valid();
 
-                    // $("#address_city").val('').change().valid();
-                    // $("#address_neighborhood").val('').change().valid();
-                    // $("#address_street").val('').change().valid();
+                    $("#address_city").val('').change().valid();
+                    $("#address_neighborhood").val('').change().valid();
+                    $("#address_street").val('').change().valid();
 
                     $(".col-cep-not-found").fadeIn(200);
                 }
@@ -1508,9 +1184,10 @@
             });
         }
 
-        /**
-         * Loading cep
-         */
+        function saveAddress() {
+            $("#form_address").submit();
+        }
+
         function setLoadingCep(loading) {
             if (loading) {
                 $(".col-loading").fadeIn(250);
@@ -1529,8 +1206,7 @@
             $("#address_state").selectpicker('refresh');
         }
 
-        function generateAddessesResume(with_prefix) {
-            let address_prefix = "event";
+        function generateAddressesResume(address_prefix, with_prefix) {
             let address_resume = with_prefix ? $("#" + address_prefix + "_address_street_address").val() : $(
                 "#address_street").val();
 
@@ -1564,18 +1240,24 @@
         }
 
         $(function() {
+            $('.thumbnail').viewbox();
+
             $("#address-modal").on('shown.bs.modal', function() {
                 $("#address_zip_code").focus();
             });
 
-            // $("#address-modal").on('hidden.bs.modal', function(){
-            //     $("#form_address")[0].reset();
-            //     $("#form_address").find(".selectpicker").selectpicker('refresh');
-            // });
+            $("#address-modal").on('hidden.bs.modal', function() {
+                $("#form_address")[0].reset();
+                $("#form_address").find(".selectpicker").selectpicker('refresh');
+            });
 
-            generateAddessesResume(true);
+            @if ($home_address)
+                generateAddressesResume('home', true);
+            @endif
 
-            /*
+            @if ($commercial_address)
+                generateAddressesResume('commercial', true);
+            @endif
 
             $("#form_address").validate({
                 rules: {
@@ -1587,17 +1269,18 @@
                 },
                 submitHandler: function(form) {
                     // Save the address
-                    const address_prefix = "event";
+                    const address_prefix = $("#address_prefix").val();
 
                     $("#" + address_prefix + "_address_zip_code").val($("#address_zip_code").val());
                     $("#" + address_prefix + "_address_state").val($("#address_state").val());
                     $("#" + address_prefix + "_address_city").val($("#address_city").val());
-                    $("#" + address_prefix + "_address_neighborhood").val($("#address_neighborhood").val());
+                    $("#" + address_prefix + "_address_neighborhood").val($("#address_neighborhood")
+                        .val());
                     $("#" + address_prefix + "_address_street_address").val($("#address_street").val());
                     $("#" + address_prefix + "_address_number").val($("#address_number").val());
                     $("#" + address_prefix + "_address_complement").val($("#address_complement").val());
 
-                    generateAddessesResume();
+                    generateAddressesResume(address_prefix);
 
                     $("#" + address_prefix + "-address-add-div").hide();
                     $("#" + address_prefix + "-address-change-div").show();
@@ -1607,260 +1290,6 @@
                     return false;
                 }
             });
-
-            */
         });
-
-        function validateStartEvent(event) {
-            let fields = [];
-
-            if (!event.name) {
-                fields.push('name');
-            }
-
-            if (!event.description) {
-                fields.push('description');
-            }
-
-            if (!event.event_address_zip_code || !event.event_address_city || !event.event_address_neighborhood || !event
-                .event_address_street_address || !event.event_address_state) {
-                fields.push('address');
-            }
-
-            if (!event.meeting_point) {
-                fields.push('meeting_point');
-            }
-
-            if (!event.date) {
-                fields.push('date');
-            }
-
-            if (!event.name) {
-                fields.push('date_limit');
-            }
-
-            if (!event.start_time) {
-                fields.push('start_time');
-            }
-
-            if (!event.end_time) {
-                fields.push('end_time');
-            }
-
-            if (!event.max_vehicles) {
-                fields.push('max_vehicles');
-            }
-
-            if (!event.max_participants) {
-                fields.push('max_participants');
-            }
-
-            if (!event.max_companions) {
-                fields.push('max_companions');
-            }
-
-            if (!event.unsubscribe_date_limit) {
-                fields.push('unsubscribe_date_limit');
-            }
-
-            if (!event.retention_value) {
-                fields.push('retention_value');
-            }
-
-            console.log(event);
-
-            $(class_columns).each(function(i_member_class, member_class) {
-                if (!event['class_data'][member_class]) {
-                    event['class_data'][member_class] = {};
-                }
-
-                if (!event['class_data'][member_class]['start_subscription_date']) {
-                    fields.push('class.' + member_class + '.start_subscription_date');
-                }
-
-                if (!event['class_data'][member_class]['vehicle_value']) {
-                    fields.push('class.' + member_class + '.vehicle_value');
-                }
-
-                if (!event['class_data'][member_class]['participant_value']) {
-                    fields.push('class.' + member_class + '.participant_value');
-                }
-
-                if (!event['class_data'][member_class]['companion_value']) {
-                    fields.push('class.' + member_class + '.companion_value');
-                }
-            });
-
-            if (fields.length > 0) {
-                return fields;
-            }
-
-            return false;
-        }
-
-        $("#btn-save-draft").on('click', function() {
-            $("#status").val("{{ \App\Models\Event::DRAFT_STATUS }}");
-
-            $("#form-event").submit();
-        });
-
-        $("#btn-save-active").on('click', function() {
-            $("#status").val("{{ \App\Models\Event::ACTIVE_STATUS }}");
-
-            let event = objectifyForm($("#form-event").serializeArray());
-            let validate = validateStartEvent(event);
-
-            if (validate) {
-                fields = [];
-
-                $(validate).each(function(i_field, field) {
-                    if (field.indexOf('class.') !== -1) {
-                        class_name = field.substr(field.indexOf('.') + 1);
-                        field = class_name.substr(class_name.indexOf('.') + 1);
-
-                        class_name = class_name.substr(0, class_name.indexOf('.'));
-
-                        return fields.push(`<i class="material-icons icon-` + class_name +
-                            `">emoji_events</i> ` + Lang.get('events.form.class.' + field));
-                    }
-
-                    fields.push(`<i class="material-icons icon-event">info_outline</i> ` + Lang.get(
-                        'events.form.' + field));
-                });
-
-                return Swal.fire({
-                    title: "Atenção",
-                    html: `Os seguintes campos são obrigatórios para ativar o evento: <br><br><strong> ` +
-                        fields.join("<br>") + '</strong>',
-                    icon: 'warning',
-                    showCancelButton: false,
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: Lang.get('general.ok'),
-                })
-            }
-
-            $("#form-event").submit();
-        });
-
-        function objectifyForm(formArray) {
-            //serialize data function
-            var returnArray = {};
-
-            for (var i = 0; i < formArray.length; i++) {
-                returnArray[formArray[i]['name']] = formArray[i]['value'];
-            }
-
-            Object.keys(returnArray).forEach(function(key, i_key) {
-                if (key.indexOf('class[') !== -1) {
-                    let member_class = key.substr(key.indexOf('['));
-                    let value = key.substring(key.indexOf(']') + 2, key.length - 1);
-
-                    member_class = member_class.substr(1, member_class.indexOf(']') - 1);
-
-                    if (!returnArray['class_data']) {
-                        returnArray['class_data'] = {};
-                    }
-
-                    if (!returnArray['class_data'][member_class]) {
-                        returnArray['class_data'][member_class] = {};
-                    }
-
-                    returnArray['class_data'][member_class][value] = returnArray[key];
-
-                    delete returnArray[key];
-                }
-            });
-
-            return returnArray;
-        }
-
-        function dateDatabaseToBr(date) {
-            if (date !== null && date.indexOf('-') !== -1 && date !== '-' && date !== '--') {
-                date = new Date(date);
-
-                return date.toISOString().substr(0, 10).split('-').reverse().join('/');
-            }
-
-            return date;
-        }
-
-        function getMembers() {
-            return new Promise(function(resolve, reject) {
-                $.ajax({
-                    url: '/api/events/{{ $event && is_array($event) && isset($event['id']) ? $event['id'] : '' }}/members'
-                }).then(function(response) {
-                    if (response.status == 'success') {
-                        resolve(response.data);
-                    }
-
-                    reject(false);
-                }).catch(function(err) {
-                    reject(err);
-                });
-            })
-        }
-
-        async function showMembersModal() {
-            $("#members-modal").find('.loading').show();
-            $("#members-modal").find(".table").find("tbody").html('');
-            $("#members-modal").modal('show');
-
-            let members = await getMembers();
-
-            $("#members-modal").find(".loading").fadeOut(450);
-            $("#members-modal").find(".table-members").fadeIn(450);
-
-            let amount = 0;
-
-            $(members).each(function(i_member, member) {
-                let tr = $("<tr></tr>");
-                let cpf = member.user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-
-                tr.append("<td>" + member.user.name + "</td>");
-                tr.append("<td>" + cpf + "</td>");
-                tr.append("<td>" + formatPhone(member.user.phone) + "</td>");
-                tr.append("<td>" + (member.vehicle ? Lang.get('general.yes') : Lang.get('no')) + "</td>");
-                tr.append("<td>" + member.companions + "</td>");
-                tr.append("<td>" + member.amount.formatMoney() + "</td>");
-
-                amount += member.amount;
-
-                $("#members-modal").find(".table-members").find("tbody").append(tr);
-            });
-
-            if (members.length <= 0) {
-                let tr = $("<tr></tr>");
-
-                tr.append('<td colspan="100%">' + Lang.get('general.no-records') + '</td>');
-
-                $("#members-modal").find(".table-members").find("tbody").append(tr);
-            }
-
-            $(".value-participants").html(members.length);
-            $(".value-amount").html(amount.formatMoney());
-        }
-
-        $("#members-modal").on('hide.bs.modal', function() {
-            $("#members-modal").find('.loading').hide();
-            $("#members-modal").find(".table-members").hide();
-        })
-
-        function formatPhone(tel) {
-            tel = tel.replace(/\D/g, "")
-            tel = tel.replace(/^(\d)/, "$1")
-            tel = tel.replace(/(.{0})(\d)/, "$1($2")
-            tel = tel.replace(/(.{3})(\d)/, "$1)$2")
-            tel = tel.replace(/(.{4})$/, "-$1")
-
-            return tel;
-        }
-
-        @if (!$event)
-            $(function() {
-                setTimeout(function() {
-                    $("#name").focus();
-                }, 700);
-            })
-        @endif
     </script>
 @endsection
