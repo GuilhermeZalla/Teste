@@ -1,1295 +1,1097 @@
 @extends('template.default')
 
-@section('more-content')
-    <div class="wizard-container">
-        <div class="card wizard-card" data-color="red" style="display: none;">
-            <a href="{{ route("users.{$user_type}.list") }}" class="btn btn-primary btn-just-icon btn-round btn-back">
-                <i class="material-icons">arrow_back</i>
-            </a>
+@section('icon', 'store')
+@section('back', route('product.list'))
 
-            <form
-                action="{{ $type == 'create' ? route("users.{$user_type}.create.post") : route("users.{$user_type}.update.post", ['user_id' => $user['id']]) }}"
-                method="POST" enctype="multipart/form-data" id="user-form">
-                @csrf
+@section('content')
+    <div class="row">
+        <div class="col-md-12 text-center">
 
-                <div class="wizard-header">
-                    <h3 class="wizard-title">
-                        @lang($user_type . '.title-' . $type)
-                    </h3>
-                    <h5>@lang($user_type . '.description-create')</h5>
+            <?php if (isset($product)) { ?>
+            <h3>@lang('product-adregistration.title_edit')</h3>
+            <?php } else { ?>
+            <h3>@lang('product-adregistration.title')</h3>
+            <?php } ?>
+
+        </div>
+        <form id="form" method="post" enctype="multipart/form-data" novalidate="novalidate"
+            action="{{ route('product.store') }}">
+            <input type="hidden" name="_token" value="gnUal5scRIjJxR6RlMtLLiNVDOqIZyx6BMnMSLXp">
+            @csrf
+            <?php if (isset($product)) { ?>
+            <input type="hidden" name="product_id" value="{{ $product['id'] }}" />
+            <?php } ?>
+            <input type="hidden" name="email_user" value="{{ $session['email'] }}" />
+            <div class="col-sm-12" style="padding: 0px">
+                <div class="col-sm-6" style="">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <div class="icon-attach-money">
+                                <i class="material-icons">campaign</i>
+                            </div>
+                        </span>
+                        <div class="form-group form-group-state label-floating is-focused">
+                            <select id="type_ad" class="selectpicker" name="type_ad" data-live-search="true"
+                                data-live-search-normalize="true" data-style="select-with-transition"
+                                data-title="Tipo de anúncio" required data-type-ad="{{ $product['type_ad'] ?? '' }}">
+                                <option value="" selected style="display:none;"></option>
+                                <option value="Externo"
+                                    {{ isset($product['type_ad']) && $product['type_ad'] == 'Externo' ? 'selected' : '' }}>
+                                    Externo</option>
+                                <option value="Interno"
+                                    {{ isset($product['type_ad']) && $product['type_ad'] == 'Interno' ? 'selected' : '' }}>
+                                    Interno</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="wizard-navigation">
-                    <ul>
-                        <li><a href="#mandatory-data" data-toggle="tab">@lang($user_type . '.tabs.mandatory-data')</a></li>
-                        <li><a href="#complementary-data" data-toggle="tab">@lang($user_type . '.tabs.complementary-data')</a></li>
+            </div>
+            {{-- Date --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-date">
+                            <i class="material-icons">today</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.date_begin') <small>(Obrigatório)</small></label>
+                        <?php
+                        // Formata a data para o formato YYYY-MM-DD
+                        $date_begin = isset($product['date_begin']) ? date('Y-m-d', strtotime(str_replace('/', '-', $product['date_begin']))) : '';
+                        ?>
+                        <input id="date_begin" name="date_begin" type="text" maxlength="10"
+                            class="form-control datepicker valid" data-format="DD-MM-YYYY"
+                            data-min-date="{{ date('Y-m-d') }}" value="{{ $date_begin }}" required=""
+                            aria-required="true" aria-invalid="false" autocomplete="off">
+                    </div>
+                </div>
+            </div>
 
-                        @if ($type == 'create')
-                            <li><a href="#vehicle-data" data-toggle="tab">@lang($user_type . '.tabs.vehicle-data')</a></li>
-                        @else
-                            <li><a href="#vehicles" data-toggle="tab">@lang($user_type . '.tabs.vehicles-data')</a></li>
-                        @endif
-                    </ul>
+            {{-- Date Limit --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-date">
+                            <i class="material-icons">today</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.date_finish') <small> (Obrigatório)</small></label>
+                        <?php
+                        // Formata a data para o formato YYYY-MM-DD
+                        $date_finish = isset($product['date_finish']) ? date('Y-m-d', strtotime(str_replace('/', '-', $product['date_finish']))) : '';
+                        ?>
+                        <input id="date_finish" name="date_finish" type="text" maxlength="10"
+                            class="form-control datepicker valid" data-format="DD-MM-YYYY"
+                            data-min-date="{{ date('Y-m-d') }}" value="{{ $date_finish }}" required=""
+                            aria-required="true" aria-invalid="false" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Quantity --}}
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-add">
+                            <i class="material-icons">add</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.quantity') <small> (Obrigatório)</small></label>
+                        <input id="quantity" name="quantity" type="number" class="form-control"
+                            value="{{ $product['quantity'] ?? '' }}" aria-required="true" required min="1"
+                            autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-name">
+                            <i class="material-icons">create</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.name') <small> (Obrigatório)</small></label>
+                        <input id="name" name="name" type="text" aria-required="true" class="form-control"
+                            maxlength="50" value="{{ $product['name'] ?? '' }}" required autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-description">
+                            <i class="material-icons">create</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.description') <small> (Obrigatório)</small></label>
+                        <input id="description" name="description" aria-required="true" type="text"
+                            class="form-control" maxlength="200" value="{{ $product['description'] ?? '' }}" required
+                            autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <div class="icon-attach-money">
+                            <i class="material-icons">attach_money</i>
+                        </div>
+                    </span>
+                    <div class="form-group">
+                        <label class="control-label">@lang('product-adregistration.form.value')<small> (Obrigatório)</small></label>
+                        <input id="value" name="value" type="text" class="form-control money"
+                            aria-required="true" value="{{ str_replace('.', ',', $product['value'] ?? '') }}" required
+                            autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 share">
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="material-icons">share</i>
+                    </span>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="type" id="sponsor"
+                            value="Patrocinador" checked>
+                        <label class="form-check-label" for="sponsor">
+                            Patrocinador
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="type" id="partner" value="Parceiro">
+                        <label class="form-check-label" for="partner">
+                            Parceiro
+                        </label>
+                    </div>
+                </div>
+                <div id="sponsor_radio_type" class="input-group sponsor-partner">
+                    <span class="input-group-addon">
+                        <i class="material-icons">list</i>
+                    </span>
+                    <div class="form-group form-group-state label-floating is-focused">
+                        <label for="sponsor_type" class="sr-only">@lang('product-adregistration.sponsors-list')</label>
+                        <select id="sponsor_type" name="sponsor_type" class="selectpicker" data-live-search="true"
+                            data-live-search-normalize="true" data-style="select-with-transition"
+                            data-title="@lang('product-adregistration.sponsors-list')" required>
+                            <option value="" selected style="display:none;"></option>
+                            @foreach ($sponsors as $sponsor)
+                                <option value="{{ $sponsor['id'] }}" @if (isset($product['identificator']) && $sponsor['id'] == $product['identificator']) selected @endif>
+                                    {{ $sponsor['name'] }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div id="partner_radio_type" class="input-group sponsor-partner">
+                    <span class="input-group-addon">
+                        <i class="material-icons">list</i>
+                    </span>
+                    <div class="form-group form-group-state label-floating is-focused">
+                        <label for="partner_type" class="sr-only">@lang('product-adregistration.partners-list')</label>
+                        <select id="partner_type" name="partner_type" class="selectpicker" data-live-search="true"
+                            data-live-search-normalize="true" data-style="select-with-transition"
+                            data-title="@lang('product-adregistration.partners-list')" required>
+                            <option value="" selected style="display:none;"></option>
+                            @foreach ($partners as $partner)
+                                <option value="{{ $partner['id'] }}"
+                                    @if (isset($product) && $partner['id'] == $product['identificator']) selected @elseif (!isset($product['identificator']) && $loop->first) selected @endif>
+                                    {{ $partner['name'] }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Modal --}}
+
+            <div id="checkbox" class="col-sm-12" style="padding: 0px;">
+                <div class="col-sm-6" style="margin-left:-34px">
+                    <div class="input-group">
+                        <div class="form-group" style="padding-top: 22px;">
+                            <input type="checkbox" id="show-personal-data" class="form-control" name="ad_personal_data"
+                                value="{{ $product['ad_personal_data'] ?? false }}"
+                                style="display: none; height: 20px; position: absolute; left: -145px;" <?php echo isset($product['ad_personal_data']) && $product['ad_personal_data'] == 1 ? 'checked' : ''; ?>>
+                            <label for="show-personal-data" id="show-personal-data-label"
+                                style="display: none; padding-left: 85px; padding-top:8px;">Deseja publicar o anúncio com
+                                seus dados pessoais?</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="company-fields" style="display: none;">
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">description</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">CNPJ</label>
+                            <input type="text" name="cnpj" id="cnpj" autocomplete="off" class="form-control"
+                                oninput="formatCNPJ(this)" onkeyup="limitCharacters(this)"
+                                value="{{ $product['cnpj'] ?? '' }}">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="tab-content">
-                    @include('users.all.tabs.mandatory-data')
-                    @include('users.all.tabs.complementary-data')
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">business</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Nome da Empresa</label>
+                            <input type="text" name="company_name" id="company-name" autocomplete="off"
+                                class="form-control" value="{{ $product['company_name'] ?? '' }}" maxlength="70">
+                        </div>
+                    </div>
+                </div>
 
-                    @if ($type == 'create')
-                        @include('users.all.tabs.vehicle-data')
-                    @else
-                        @include('users.all.tabs.vehicles')
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">work</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Ramo de Atividade</label>
+                            <input type="text" name="activity_area" id="business-activity" autocomplete="off"
+                                class="form-control" value="{{ $product['activity_area'] ?? '' }}" maxlength="80">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">create</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Telefone Fixo</label>
+                            <input type="text" name=" fixed_phone" id="fixed-phone" autocomplete="off"
+                                class="form-control" oninput="formatPhone(this)"
+                                value="{{ $product['fixed_phone'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">smartphone</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">Celular</label>
+                            <input type="text" name="cellphone" id="whatsapp-cellphone" autocomplete="off"
+                                class="form-control" oninput="formatCellphone(this)"
+                                value="{{ $product['cellphone'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">email</i>
+                        </span>
+                        <div class="form-group">
+                            <label class="control-label">E-mail</label>
+                            <input type="email" name="email" id="email" autocomplete="off" class="form-control"
+                                maxlength="100" value="{{ $product['email'] ?? '' }}">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-sm-6 col-cover">
+
+                {{-- <button type="button" id="btn-toggle-picture" class="btn btn-primary btn-simple btn-add-picture">
+                    <i class="material-icons">add_photo_alternate</i>
+                    @lang('product-adregistration.form.add_product_pictures')
+                </button> --}}
+
+                <button type="button" id="btn-remove-picture" class="btn btn-primary btn-simple btn-remove-picture"
+                    style="display:none;">
+                    <i class="material-icons">delete_forever</i>
+                    @lang('product-adregistration.form.remove_product_pictures')
+                </button>
+
+                <div class="input-group input-group-cover text-danger">
+                    <button type="button" id="add-photo-button"
+                        class="btn btn-danger btn-simple btn-remove-picture"><span class="material-symbols-outlined">
+                            add_photo_alternate </span> Adicionar Foto (max. 5)</button>
+                </div>
+
+                <div id="images-container" class="form-group card add_files text-danger">
+                    <input id="photo-input" type="file" name="photos[]" accept="image/*" multiple
+                        style="display: none;">
+                    @if (isset($product['photos']))
+                        @foreach ($product['photos'] as $photo)
+                            <div class="preview-container">
+                                <img src="{{ $photo }}" class="preview-image">
+                                <button class="remove-btn">X</button>
+                            </div>
+                        @endforeach
+                    @endif
+
+                    @if (isset($product['img_1']) ||
+                            isset($product['img_2']) ||
+                            isset($product['img_3']) ||
+                            isset($product['img_4']) ||
+                            isset($product['img_5']))
+                        @for ($i = 1; $i <= 5; $i++)
+                            @if (isset($product['img_' . $i]))
+                                <div class="preview-container">
+                                    <img src="{{ $product['img_' . $i] }}" class="preview-image">
+                                    <button class="remove-btn">X</button>
+                                </div>
+                            @endif
+                        @endfor
                     @endif
                 </div>
 
-                <div class="wizard-footer">
-                    <div class="pull-right">
-                        <button type='button' class='btn btn-next btn-fill btn-primary btn-wd'>@lang('general.next')</button>
-                        <button type='submit' class='btn btn-finish btn-fill btn-primary btn-wd'>@lang('general.finish')</button>
-                    </div>
+                <div class="form-group card add_files text-danger" style="display: none;">
+                    <div class="form-group">
+                        <ul id="file-list">
 
-                    <div class="pull-left">
-                        <button type='button'
-                            class='btn btn-previous btn-fill btn-default btn-wd'>@lang('general.previous')</button>
+                        </ul>
                     </div>
-
-                    <div class="clearfix"></div>
                 </div>
-            </form>
-        </div>
+            </div>
 
-        @include('template.loading.wizard')
+            <div class="col-md-12 text-right">
+                <button id="finishButton" type="submit" class="btn btn-primary">Finalizar</button>
+            </div>
+        </form>
+        {{-- Banners --}}
+        @if (Route::currentRouteName() === 'product.edit')
+            <div class="col-md-12 text-dark p-4">
+                <div class="col-md-4 container_cards">
+                    {{-- Card Quantity --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary">
+                            <i class="material-icons">inventory</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_available')</p>
+                            <h2 id="quantity-header" class="card-title fw-bold">
+                                {{ $total_products === '' ? $product['quantity'] : $total_products }}<h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    {{-- Card Sold --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary">
+                            <i class="material-icons">shopping_cart_checkout</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_sold')</p>
+                            <h2 class="card-title fw-bold">@php echo $history_sales; @endphp<h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    {{-- Card Balance --}}
+                    <div class="card card-stats">
+                        <div class="card-header" data-background-color="primary"><i
+                                class="material-symbols-outlined">inventory</i>
+                        </div>
+                        <div class="card-content">
+                            <p class="category">@lang('product-adregistration.product_balance')</p>
+                            <h2 class="card-title fw-bold">
+                                @php
+                                    $available = $total_products - $history_sales;
+                                    echo $available;
+                                @endphp
+                                <h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
     </div>
-
-    @if ($type == 'update')
-        @include('users.all.history')
-    @endif
-@endsection
-
-@section('free-content')
-    @if ($type == 'update')
-        @include('users.all.modal.vehicle-modal')
-    @endif
-
-    @include('users.all.modal.address-modal')
-@endsection
-
-@section('style')
-    <style type="text/css">
-        .car-principal-information {
-            /*margin-bottom: 32px; background-color: whitesmoke;*/
-            padding-bottom: 16px;
-            border-radius: 16px;
-        }
-
-        .carplate-group,
-        .yaers-group {
-            margin-top: 6px;
-        }
-
-        .box-vehicle-data {
-            margin-top: 12px;
-            margin-bottom: 12px;
-        }
-
-        .square-car-color {
-            padding: 6px;
-            border-radius: 100%;
-            display: inline-block;
-            margin-right: 4px;
-            box-shadow: 1px 1px 3px 0 rgba(0, 0, 0, 0.1), -1px -1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .bootstrap-select {
-            margin-top: 0;
-        }
-
-        .no-vehicle {
-            padding: 8px;
-            text-align: center;
-            font-weight: bold;
-            background-color: #fbfbfb;
-        }
-
-        /* .form-group-car-model{ margin-top: 28px !important; } */
-        .car-model-picture {
-            margin-top: 12px;
-            border-radius: 4px;
-            object-fit: contain;
-        }
-
-        .vehicle-table-title {
-            font-weight: bold;
-            color: #555;
-            font-size: 1.1em;
-            border-bottom: 1px solid #eee;
-        }
-
-        .vehicle-table-line {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #e9e9e9;
-        }
-
-        .vehicle-table-line .col-actions .btn {
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-        }
-
-        .color-box {
-            display: block;
-            width: 12px;
-            height: 12px;
-            top: 4px;
-            margin: 0 auto;
-            position: absolute;
-            border-radius: 6px;
-        }
-
-        .color-text {
-            padding-left: 16px;
-        }
-
-        /*.dropdown-toggle .square-car-color{ vertical-align: middle;  }*/
-
-        #vehicle-modal .car-model-picture {
-            height: 60px !important;
-        }
-
-        #vehicle-modal .loading-modal {
-            width: 100%;
-            height: 120px;
-            text-align: center;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #vehicle-modal .modal-footer .loading {
-            display: inline-block;
-            margin-right: 12px;
-        }
-
-        .car-model-picture-inside {
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 100%;
-            margin-right: 8px;
-            object-fit: cover;
-        }
-
-        .row.vehicle-photos {
-            padding: 0 20px;
-        }
-
-        .photo-container {
-            display: inline-block;
-        }
-
-        .thumbnail {
-            display: block;
-            padding: 12px;
-            margin-bottom: 0;
-        }
-
-        .btn-remove-photo {
-            display: block;
-            text-align: center;
-            margin: 0 auto;
-        }
-
-        .user-vehicle-photo {
-            width: 145px !important;
-            height: 82px !important;
-            object-fit: cover;
-            border-radius: 12px;
-            box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.19);
-        }
-
-        .add_vehicle_photo,
-        .add_photo_without_vehicle {
-            display: none !important;
-        }
-
-        .img-add-picture {
-            border: 2px dashed #333;
-        }
-
-        .add-vehicle-thumbnail {
-            margin: 0 !important;
-        }
-
-        .form-group-state {
-            margin-top: 12px;
-        }
-
-        .col-loading,
-        .col-cep-not-found {
-            padding: 20px 5px;
-        }
-
-        .col-cep-not-found .error {
-            color: #da750d
-        }
-
-        .title-history {
-            font-weight: bold;
-        }
-    </style>
 @endsection
 
 @section('script')
     <script type="text/javascript">
-        var create_vehicle_action = "{{ route('api.vehicles.create') }}";
-        var update_vehicle_action = "{{ route('api.vehicles.update') }}";
-        var update_vehicle_id = false;
-        var photo_without_vehicle = {};
-
-        var no_picture = "{{ asset('images/icons/no-image-icon.png') }}";
-
-        /**
-         * @TODO
-         * Mover função para um helper global
-         */
-        $.fn.serializeObject = function() {
-            var o = {};
-            var a = this.serializeArray();
-            $.each(a, function() {
-                if (o[this.name]) {
-                    if (!o[this.name].push) {
-                        o[this.name] = [o[this.name]];
-                    }
-                    o[this.name].push(this.value || '');
-                } else {
-                    o[this.name] = this.value || '';
-                }
-            });
-            return o;
-        };
-
         $(document).ready(function() {
-            $('#document_cpf').on('input', function() {
-                this.value = this.value.replace(/[^\d]+/g, '');
+            var adPersonal = $('#show-personal-data').val();
+            if (adPersonal === 1 || adPersonal === '1') {
+                $('#company-fields').hide();
+            }
 
-                var value = this.value;
-                if (value.length == 11) {
-                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-                    this.value = value;
-                }
-            });
-
-            $("#carplate-field").on("input", function() {
-                var value = $(this).val();
-                var pattern = /^[a-zA-Z]+$/;
-                if (!pattern.test(value.substr(0, 3))) {
-                    $(this).val(value.replace(/[^a-zA-Z]+/g, "").substr(0, 3));
-                }
-                value = $(this).val();
-                if (value.length === 3) {
-                    $(this).val(value + "-");
-                } else if (value.length > 6) {
-                    pattern = /^[a-zA-Z0-9]+$/;
-                    if (!pattern.test(value.substr(4))) {
-                        $(this).val(value.substr(0, 4) + value.substr(4).replace(/[^a-zA-Z0-9]+/g, ""));
-                    }
-                }
-            });
-
-            $("#vehicle-modal-carplate").on("input", function() {
-                var value = $(this).val();
-                var pattern = /^[a-zA-Z]+$/;
-                if (!pattern.test(value.substr(0, 3))) {
-                    $(this).val(value.replace(/[^a-zA-Z]+/g, "").substr(0, 3));
-                }
-                value = $(this).val();
-                if (value.length === 3) {
-                    $(this).val(value + "-");
-                } else if (value.length > 6) {
-                    pattern = /^[a-zA-Z0-9]+$/;
-                    if (!pattern.test(value.substr(4))) {
-                        $(this).val(value.substr(0, 4) + value.substr(4).replace(/[^a-zA-Z0-9]+/g, ""));
-                    }
-                }
-            });
-
-            $('#name').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#nickname').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#address_city').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#address_neighborhood').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#address_street').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#status_reason').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $('#phone').on('input', function() {
-                this.value = this.value.replace(/[^\d]+/g, '');
-
-                var value = this.value;
-                if (value.length >= 10) {
-                    value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 4) + '-' + value.substr(6);
-                    this.value = value;
-                }
-            });
-
-            $('#rg').on('input', function() {
-                this.value = this.value.replace(/[^\d]+/g, '');
-            });
-
-            $('#company_activities').on('input', function() {
-                this.value = this.value.replace(/[^a-zA-Z\u00C0-\u017F\s]+/g, '');
-            });
-
-            $("#renavam").on("input", function() {
-                let value = $(this).val();
-                let regex = /^[0-9A-Za-z]+$/;
-                if (!regex.test(value)) {
-                    $(this).val(value.replace(/[^0-9A-Za-z]+/g, ''));
-                }
-            });
-
+            if($('#type_ad').val() === 'Externo'){
+                $('.share').show();
+            }
         });
 
         $(document).ready(function() {
-            makeWizard('.wizard-card', {
-                'animation': 'fade',
-            });
+            var maxImages = 5;
+            var imagesPreview = $('#images-container');
+            var addPhotoButton = $('#add-photo-button');
+            var photoInput = $('#photo-input');
 
-            // $("#user-form").on('submit', function(){
-            //     $(".phone_with_ddd").unmask();
-            //     $(".cpf").unmask();
-            //     $(".carplate").unmask();
-            // });
+            photoInput.on('change', function() {
+                var files = $(this).prop('files');
 
-            $("#add-vehicle").on('change', function() {
-                if (this.checked) {
-                    $(".vehicle-add-after").stop().fadeOut(360, function() {
-                        $(".vehicle-data").stop().show(320);
-                    });
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
 
-                    $("#carplate-field").attr("required", true);
-                    $("#car-model-field").attr("required", true);
+                    if (!file.type.match('image.*')) {
+                        continue;
+                    }
 
-                } else {
-                    $(".vehicle-data").stop().hide(320, function() {
-                        $(".vehicle-add-after").stop().fadeIn(360);
-                    });
+                    if (imagesPreview.find('.preview-container').length >= maxImages) {
+                        swal.fire({
+                            title: 'Atenção',
+                            text: 'Você atingiu o limite de imagens permitido.',
+                            icon: 'warning',
+                            confirmButtonColor: '#3085d6',
+                            confirmButtonText: 'OK'
+                        });
+                        break;
+                    }
 
-                    $("#carplate-field").removeAttr("required");
-                    $("#car-model-field").removeAttr("required");
+                    var imgUrl = URL.createObjectURL(file);
+
+                    var previewContainer = $('<div>').addClass('preview-container');
+                    var previewImage = $('<img>').addClass('preview-image').attr('src', imgUrl);
+                    var removeButton = $('<button>').addClass('remove-btn').text('X');
+
+                    previewContainer.append(previewImage, removeButton);
+                    imagesPreview.append(previewContainer);
                 }
             });
 
-            $("#status").on('change', function() {
-                if ($("#status").val() == '{{ \App\Models\User::ACTIVE_STATUS }}') {
-                    $(".row-status-reason").stop().hide(300);
-                } else {
-                    $(".row-status-reason").stop().show(300);
-                }
-
-                if ($("#status").val() != '{{ \App\Models\User::SUSPENDED_STATUS }}') {
-                    $(".row-suspended-time").stop().hide(300);
-                } else {
-                    $(".row-suspended-time").stop().show(300);
-                }
+            imagesPreview.on('click', '.remove-btn', function() {
+                var previewContainer = $(this).closest('.preview-container');
+                previewContainer.remove();
+                photoInput.val('');
             });
 
-            $("#car-model-field, #vehicle-modal-car-model").on('change', function() {
-                var id_selected = $(this).val();
-                var option_selected = $(this).find("option[value=" + id_selected + "]");
-                var model_picture = $(option_selected).attr('data-picture');
-
-                if (!model_picture) {
-                    model_picture = no_picture;
-                }
-
-                $(".car-model-picture").attr("src", model_picture);
+            addPhotoButton.on('click', function() {
+                photoInput.click();
             });
-
-            $("#add-vehicle").change();
-
-            @if (
-                $user &&
-                    array_key_exists('vehicle', $user) &&
-                    array_key_exists('car_model_id', $user['vehicle']) &&
-                    !empty($user['vehicle']['car_model_id']))
-                $("#car-model-field").change();
-            @endif
         });
 
-        window.makeWizard = function($selector, $params) {
-            $validator = false;
+        var input = document.getElementById('btn-toggle-picture');
+        var fileList = document.getElementById('file-list');
 
-            // Validate params
-            if (!$params)
-                $params = {};
+        $('#btn-toggle-picture').on('change', function() {
+            var files = $(this)[0].files;
+            var fileList = $('#file-list');
+            var count = 0;
 
-            if ($params.validator)
-                $validator = $params.validator;
+            fileList.empty();
 
-            // Default params ////
-            if (!$params.nextSelector) $params.nextSelector = '.btn-next';
-            if (!$params.previousSelector) $params.previousSelector = '.btn-previous';
-            if (!$params.finishSelector) $params.finishSelector = '.btn-finish';
-            if (!$params.loadingSelector) $params.loadingSelector = '.loading-wizard';
-            if (!$params.animation) $params.animation = 'none';
-            if (!$params.pictureSelector) $params.pictureSelector = '.wizard-picture';
-            if (!$params.pictureRemoveSelector) $params.pictureRemoveSelector = '.wizard-picture-remove';
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var reader = new FileReader();
 
-            // Wizard Initialization
-            $bootstrapWizard = $($selector).bootstrapWizard({
-                'tabClass': 'nav nav-pills',
-                'nextSelector': $params.nextSelector,
-                'previousSelector': $params.previousSelector,
-
-                onNext: function(tab, navigation, index) {
-                    // Call onNext callback in params
-                    if ($params.onNext)
-                        $params.onNext(tab, navigation, index);
-
-                    var $valid = $($selector + ' form').valid();
-
-                    if (!$valid) {
-                        if ($validator)
-                            $validator.focusInvalid();
-
-                        return false;
-                    }
-                },
-
-                onInit: function(tab, navigation, index) {
-                    // Call onInit callback in params
-                    if ($params.onInit)
-                        $params.onInit(tab, navigation, index);
-
-                    if ($params.animation != "none")
-                        showWizard($params.animation);
-
-                    //check number of tabs and fill the entire row
-                    var $total = navigation.find('li').length;
-                    var $wizard = navigation.closest($selector);
-
-                    $first_li = navigation.find('li:first-child a').html();
-                    $moving_div = $('<div class="moving-tab">' + $first_li + '</div>');
-                    $($selector + ' .wizard-navigation').append($moving_div);
-
-                    refreshAnimation($wizard, index);
-
-                    $('.moving-tab').css('transition', 'transform 0s');
-                },
-
-                onTabClick: function(tab, navigation, index) {
-                    // Call onTabClick callback in params
-                    if ($params.onTabClick)
-                        $params.onTabClick(tab, navigation, index);
-
-                    var $valid = $($selector + ' form').valid();
-
-                    if (!$valid) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                },
-
-                onTabShow: function(tab, navigation, index) {
-                    // Call onTabShow callback in params
-                    if ($params.onTabShow)
-                        $params.onTabShow(tab, navigation, index);
-
-                    var $total = navigation.find('li').length;
-                    var $current = index + 1;
-
-                    var $wizard = navigation.closest($selector);
-
-                    // If it's the last tab then hide the last button and show the finish instead
-                    if ($current >= $total) {
-                        $($wizard).find($params.nextSelector).hide();
-                        $($wizard).find($params.finishSelector).show();
-                    } else {
-                        $($wizard).find($params.nextSelector).show();
-                        $($wizard).find($params.finishSelector).hide();
-                    }
-
-                    button_text = navigation.find('li:nth-child(' + $current + ') a').html();
-                    // console.log("TEXT = ", button_text);
-                    // button_text.find("i").css("display", "block");
-
-
-                    setTimeout(function() {
-                        $('.moving-tab').html('').append(button_text);
-                    }, 150);
-
-                    var checkbox = $('.footer-checkbox');
-
-                    if (!index == 0) {
-                        $(checkbox).css({
-                            'opacity': '0',
-                            'visibility': 'hidden',
-                            'position': 'absolute'
-                        });
-                    } else {
-                        $(checkbox).css({
-                            'opacity': '1',
-                            'visibility': 'visible'
-                        });
-                    }
-
-                    refreshAnimation($wizard, index);
-                }
-            });
-
-            // Prepare the preview for profile picture
-            $($params.pictureSelector).change(function() {
-                readURL(this, $(this).attr("data-preview"));
-            });
-
-            $('[data-toggle="wizard-radio"]').click(function() {
-                wizard = $(this).closest($selector);
-                wizard.find('[data-toggle="wizard-radio"]').removeClass('active');
-                $(this).addClass('active');
-                $(wizard).find('[type="radio"]').removeAttr('checked');
-                $(this).find('[type="radio"]').attr('checked', 'true');
-            });
-
-            $('[data-toggle="wizard-checkbox"]').click(function() {
-                if ($(this).hasClass('active')) {
-                    $(this).removeClass('active');
-                    $(this).find('[type="checkbox"]').removeAttr('checked');
-                } else {
-                    $(this).addClass('active');
-                    $(this).find('[type="checkbox"]').attr('checked', 'true');
-                }
-            });
-
-            $('.set-full-height').css('height', 'auto');
-
-            // Function to show image before upload
-            function readURL(input, preview_selector) {
-                if (input.files && input.files[0]) {
-                    var reader = new FileReader();
-
-                    reader.onload = function(e) {
-                        $(preview_selector).attr('src', e.target.result).fadeIn('slow');
-
-                        if ($($params.pictureRemoveSelector))
-                            $($params.pictureRemoveSelector).val('false');
-                    }
-
-                    reader.readAsDataURL(input.files[0]);
-                }
-            }
-
-            $(window).resize(function() {
-                $($selector).each(function() {
-                    $wizard = $(this);
-
-                    index = $wizard.bootstrapWizard('currentIndex');
-                    refreshAnimation($wizard, index);
-
-                    $('.moving-tab').css({
-                        'transition': 'transform 0s'
+                reader.onload = function(event) {
+                    var li = $('<li>').addClass('file-item').appendTo(fileList);
+                    var img = $('<img>').attr('src', event.target.result).addClass('img-cover');
+                    img[0].style.width = '125px';
+                    img[0].style.height = '105px';
+                    img[0].style.borderRadius = '10px';
+                    img[0].style.boxShadow = '0 1px 4px 0 rgb(0 0 0 / 14%)';
+                    img[0].classList.add("picture");
+                    li.append(img);
+                    var removeButton = $('<button>').text('X');
+                    removeButton[0].style.border = 'none';
+                    removeButton[0].style.backgroundColor = 'transparent';
+                    removeButton[0].style.padding = '0';
+                    removeButton[0].style.margin = '0 0 0 5px';
+                    removeButton[0].style.fontSize = '1.2rem';
+                    removeButton[0].style.fontWeight = 'bold';
+                    removeButton.on('click', function() {
+                        li.remove();
+                        count--;
                     });
-                });
-            });
+                    li.append(removeButton);
+                };
 
-            function refreshAnimation($wizard, index) {
-                $total = $wizard.find('.nav li').length;
-                $li_width = 100 / $total;
-
-                total_steps = $wizard.find('.nav li').length;
-                move_distance = $wizard.width() / total_steps;
-                index_temp = index;
-                vertical_level = 0;
-
-                mobile_device = $(document).width() < 600 && $total > 3;
-
-                if (mobile_device) {
-                    move_distance = $wizard.width() / 2;
-                    index_temp = index % 2;
-                    $li_width = 50;
-                }
-
-                $wizard.find('.nav li').css('width', $li_width + '%');
-
-                step_width = move_distance;
-                move_distance = move_distance * index_temp;
-
-                $current = index + 1;
-
-                if ($current == 1 || (mobile_device == true && (index % 2 == 0))) {
-                    move_distance -= 8;
-                } else if ($current == total_steps || (mobile_device == true && (index % 2 == 1))) {
-                    move_distance += 8;
-                }
-
-                if (mobile_device) {
-                    vertical_level = parseInt(index / 2);
-                    vertical_level = vertical_level * 38;
-                }
-
-                $wizard.find('.moving-tab').css('width', step_width);
-                $('.moving-tab').css({
-                    'transform': 'translate3d(' + move_distance + 'px, ' + vertical_level + 'px, 0)',
-                    'transition': 'all 0.5s cubic-bezier(0.29, 1.42, 0.79, 1)'
-
-                });
+                reader.readAsDataURL(file);
+                count++;
             }
-
-            /**
-             * Show wizard with animation
-             * @param string animation
-             * @author Davi Souto
-             * @since 06/06/2020
-             */
-            function showWizard(animation) {
-                if (animation == "fade") {
-                    $($params.loadingSelector).fadeOut(260, function() {
-                        $($selector).fadeIn(600);
-                    });
-                }
-            }
-
-            /**
-             * Remove wizard picture
-             * @author Davi Souto
-             * @since 09/06/2020
-             */
-            $($($params.pictureRemoveSelector).attr("data-dispatch")).on('click', function() {
-                $($params.pictureSelector).val('');
-                $($($params.pictureSelector).attr("data-preview")).attr("src", $($params.pictureSelector).attr(
-                    "data-default"));
-
-                $($params.pictureRemoveSelector).val('true');
-            })
-
-            setTimeout(function() {
-                $($selector).addClass('active');
-            }, 600);
-
-            $bootstrapWizard.$params = $params;
-
-            return $bootstrapWizard;
-        }
-
-        function showVehicleModal(vehicle_id) {
-            $('#vehicle-modal').modal('show');
-
-            if (vehicle_id) {
-                getVehicleData(vehicle_id);
-
-                update_vehicle_id = vehicle_id;
-            } else {
-                $("#vehicle-form").show();
-                $("#vehicle-form").find('.selectpicker').selectpicker('refresh');
-                $(".car-model-picture").attr('src', '{{ asset('images/icons/no-image-icon.png') }}');
-
-                $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
-
-                update_vehicle_id = false;
-            }
-        }
-
-        function getVehicleData(vehicle_id) {
-            $(".loading-modal").show();
-
-            $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', true).attr('disabled', true);
-
-            $.ajax({
-                url: "{{ route('api.vehicles.get') }}/" + vehicle_id,
-                method: "GET"
-            }).then(function(response) {
-                if (response.status == 'success') {
-                    let vehicle = response.data;
-
-                    $("#vehicle-modal-carplate").val(vehicle.carplate);
-                    $("#vehicle-modal-renavam").val(vehicle.document_renavam);
-                    $("#vehicle-modal-chassis").val(vehicle.chassis);
-                    $("#vehicle-modal-carplate").change();
-                    $("#vehicle-modal-renavam").change();
-                    $("#vehicle-modal-chassis").change();
-
-                    if (vehicle.car_model) {
-                        $("#vehicle-modal-car-model").val(vehicle.car_model.id);
-                    }
-
-                    if (vehicle.car_color) {
-                        $("#vehicle-modal-car-color").val(vehicle.car_color.id);
-                    }
-
-                    if (vehicle.year_manufacture) {
-                        $("#vehicle-modal-year-manufacture").val(vehicle.year_manufacture);
-                    }
-
-                    if (vehicle.model_year) {
-                        $("#vehicle-modal-model-year").val(vehicle.model_year);
-                    }
-                    $(".loading-modal").hide();
-                    $("#vehicle-form").show();
-                    $("#vehicle-form").find('.selectpicker').selectpicker('refresh');
-                    $("#vehicle-modal-car-model").change();
-
-                    $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
-                    // $(".loading-modal").hide(function(){
-                    //     $("#vehicle-form").show(325);
-                    // }, 250);
-                } else showError("Ops, ocorreu um erro: " + response.message);
-            }).catch(function(err) {
-                console.log("Erro:", err);
-                showError("Ops, ocorreu um erro: " + err);
-            });
-        }
-
-        function saveVehicle() {
-            var action = create_vehicle_action;
-
-            if (update_vehicle_id) {
-                action = update_vehicle_action + '/' + update_vehicle_id;
-            }
-
-            $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', true).attr('disabled', true);
-            $("#vehicle-modal .modal-footer").find(".loading").show();
-
-            $.ajax({
-                method: 'POST',
-                url: action,
-                data: $("#vehicle-form").serializeObject(),
-            }).then(function(response) {
-                $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
-                $("#vehicle-modal .modal-footer").find(".loading").hide();
-
-                if (response && response.status == 'success') {
-                    showSuccess(response.message);
-
-                    let vehicle = response.data;
-
-                    if (!update_vehicle_id) {
-                        var clone_line = $("#vehicles-table").find('.vehicle-table-line.dont-remove').clone();
-
-                        $(clone_line).removeClass('dont-remove');
-                        $(clone_line).attr('data-vehicle-id', vehicle.id);
-
-                        $(clone_line).find('.vehicle-photos-rows').attr('id', 'vehicle-photos-' + vehicle.id);
-                        $(clone_line).find('.add_vehicle_photo').attr('id', 'add_vehicle_photo_' + vehicle.id).attr(
-                            'onchange', 'uploadVehiclePhoto(' + vehicle.id + ')');
-                        $(clone_line).find('.btn-add-vehicle-photo').on('click', function() {
-                            $('#add_vehicle_photo_' + vehicle.id).click();
-                        });
-                        $('onclick', "$('#add_vehicle_photo_" +  + "').click()");
-
-                        $("#vehicles-table").append(clone_line);
-                    }
-
-                    let line = $("#vehicles-table").find(".vehicle-table-line[data-vehicle-id='" + vehicle.id +
-                        "']");
-
-                    $(line).find('.col-carplate').html(vehicle.carplate_formatted || '-');
-
-                    if (vehicle.car_model) {
-                        $(line).find('.col-model').find('.car-model-text')
-                            .html( /* vehicle.car_model.car_brand.name + ' ' + */ vehicle.car_model.name);
-
-                        if (vehicle.car_model.picture_url) {
-                            $(line).find('.col-model').find('.car-model-picture-inside').attr('src', vehicle
-                                .car_model.picture_url);
-                        }
-                    }
-
-                    if (vehicle.car_color) {
-                        $(line).find('.col-color').find('.color-box').css({
-                            'background-color': vehicle.car_color.value
-                        });
-                        $(line).find('.col-color').find('.color-text').html(vehicle.car_color.name);
-                    }
-
-                    $(line).find('.btn-edit-vehicle').attr('onclick', 'showVehicleModal(' + vehicle.id + ')');
-                    $(line).find('.btn-remove-vehicle').attr('onclick', 'removeVehicle(' + vehicle.id + ')');
-
-                    console.log(line);
-                    $(line).show();
-
-                    $(".no-vehicle").hide();
-
-                    $('#vehicle-modal').modal('hide');
-                } else {
-                    let error = "Ocorreu um erro ao salvar o veículo";
-
-                    if (response && response.message) {
-                        error = response.message;
-                    }
-
-                    $("#vehicle-modal .modal-footer").find(".btn").prop('disabled', false).removeAttr('disabled');
-                    $("#vehicle-modal .modal-footer").find(".loading").hide();
-
-                    showError(error);
-                }
-            }).catch(function(err) {
-                console.log("Erro:", err);
-                showError("Ops, ocorreu um erro: " + err);
-            })
-        }
-
-        function removeVehicle(vehicle_id) {
-            if (!vehicle_id) {
-                showError("Veículo não encontrado");
-            }
-
-            Swal.fire({
-                title: '{{ __('general.confirm-delete.title') }}',
-                text: '{{ __('general.confirm-delete.text') }}',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: '{{ __('general.confirm-delete.confirm') }}',
-                cancelButtonText: '{{ __('general.confirm-delete.cancel') }}',
-            }).then((result) => {
-                if (result.value) {
-                    showLoading();
-
-                    $.ajax({
-                        method: 'POST',
-                        url: "{{ route('api.vehicles.delete') }}/" + vehicle_id,
-                    }).then(function(response) {
-                        hideLoading();
-
-                        if (response && response.status == 'success') {
-                            showSuccess(response.message);
-
-                            $("#vehicles-table").find(".vehicle-table-line[data-vehicle-id='" + vehicle_id +
-                                "']").remove();
-                        } else {
-                            let error = "Ocorreu um erro ao remover o veículo";
-
-                            if (response && response.message) {
-                                error = response.message;
-                            }
-
-                            showError(error);
-                        }
-                    }).catch(function(err) {
-                        console.log("Erro:", err);
-                        showError("Ops, ocorreu um erro: " + err);
-                    });
-                }
-            });
-        }
-
-        function showError(msg) {
-            Swal.fire({
-                title: '{{ __('general.fail') }}',
-                text: msg,
-                icon: 'error',
-            });
-        }
-
-        function showSuccess(msg) {
-            Swal.fire({
-                title: '{{ __('general.success') }}',
-                text: msg,
-                icon: 'success',
-            });
-        }
-
-        $('#vehicle-modal').on('hidden.bs.modal', function() {
-            $('#vehicle-form')[0].reset();
-            $("#vehicle-form").hide();
-            $("#loading-modal").hide();
         });
 
-        function uploadVehiclePhoto(vehicle_id) {
-            let photo = $("#add_vehicle_photo_" + vehicle_id).val();
+        fileList.style.display = 'flex';
+        fileList.style.flexWrap = 'wrap';
+        fileList.style.listStyle = 'none';
 
-            if (photo) {
-                let data = new FormData();
+        $(document).ready(function() {
+            // Esconde os elementos iniciais
+            $('#show-personal-data').hide();
+            $('#show-personal-data-label').hide();
 
-                data.append('photo', $('#add_vehicle_photo_' + vehicle_id)[0].files[0]);
+            // Adiciona o listener ao select
+            $('#type_ad').change(function() {
+                var typeAd = $(this).val();
 
-                showLoading();
-
-                $.ajax({
-                    method: 'POST',
-                    url: "/api/vehicles/" + vehicle_id + "/photo/upload",
-                    headers: {
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                    },
-                    data: data,
-                    dataType: 'JSON',
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                }).then(function(response) {
-                    if (response && response.status == 'success') {
-                        let data = response.data;
-
-                        $("#vehicle-photos-" + vehicle_id).prepend(`
-                            <div class="photo-container" id="photo-` + data.id + `">
-                                <a href="` + data.photo + `" class="thumbnail">
-                                    <img src="` + data.photo +
-                            `" alt="" class="user-vehicle-photo">
-                                </a>
-                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removeVehiclePhoto(` +
-                            vehicle_id + `, ` + data.id + `)">Remover foto</button>
-                            </div>
-                        `);
-
-                        triggerAddPhotoVisible(vehicle_id);
-                        hideLoading();
-                    } else {
-                        hideLoading();
-
-                        let error = "Ocorreu um erro";
-
-                        if (response && response.message) {
-                            error = response.message;
-                        }
-
-                        showError(error);
-                    }
-                }).catch(function(err) {
-                    hideLoading();
-
-                    console.log("Erro:", err);
-                    showError("Ops, ocorreu um erro: " + err);
-                })
-            }
-        }
-
-        function uploadPhotoWithoutVehicle() {
-            let data = new FormData();
-
-            data.append('photo', $('#add_photo_without_vehicle')[0].files[0]);
-
-            showLoading();
-
-            $.ajax({
-                method: 'POST',
-                url: "/api/photo-without-vehicle",
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                data: data,
-                dataType: 'JSON',
-                contentType: false,
-                cache: false,
-                processData: false,
-            }).then(function(response) {
-                if (response && response.status == 'success') {
-                    let uploaded_photo = response.data;
-                    let photo_id = Math.floor(Math.random() * 100000);
-
-                    $("#vehicle-photos").prepend(`
-                            <div class="photo-container" id="photo-` + photo_id + `">
-                                <a href="` + uploaded_photo + `" class="thumbnail">
-                                    <img src="` + uploaded_photo +
-                        `" alt="" class="user-vehicle-photo">
-                                </a>
-                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removePhotoWithoutVehicle(` +
-                        photo_id + `)">Remover foto</button>
-                            </div>
-                        `);
-
-                    photo_without_vehicle[photo_id] = uploaded_photo;
-
-                    triggerAddPhotoVisible();
-                    populateAddPhotos();
-                    hideLoading();
+                // Exibe ou oculta os elementos apropriados com base no valor selecionado
+                if (typeAd === 'Interno') {
+                    $('#show-personal-data').show();
+                    $('#show-personal-data-label').show();
+                    $('#company-fields').show();
                 } else {
-                    hideLoading();
-
-                    let error = "Ocorreu um erro";
-
-                    if (response && response.message) {
-                        error = response.message;
-                    }
-
-                    showError(error);
+                    $('#show-personal-data').hide();
+                    $('#show-personal-data-label').hide();
+                    $('#company-fields').hide();
                 }
-            }).catch(function(err) {
-                hideLoading();
-
-                console.log("Erro:", err);
-                showError("Ops, ocorreu um erro: " + err);
-            })
-        }
-
-        function removeVehiclePhoto(vehicle_id, photo_id) {
-            showLoading();
-
-            $.ajax({
-                method: 'POST',
-                url: "/api/vehicles/" + vehicle_id + "/photo/" + photo_id + "/delete",
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-            }).then(function(response) {
-                if (response && response.status == 'success') {
-                    $("#photo-" + photo_id).remove();
-
-                    triggerAddPhotoVisible(vehicle_id);
-                    hideLoading();
-                } else {
-                    hideLoading();
-
-                    let error = "Ocorreu um erro";
-
-                    if (response && response.message) {
-                        error = response.message;
-                    }
-
-                    showError(error);
-                }
-            }).catch(function(err) {
-                hideLoading();
-
-                console.log("Erro:", err);
-                showError("Ops, ocorreu um erro: " + err);
             });
-        }
 
-        function removePhotoWithoutVehicle(photo_id) {
-            delete photo_without_vehicle[photo_id];
-
-            $("#photo-" + photo_id).remove();
-
-            triggerAddPhotoVisible();
-            populateAddPhotos();
-        }
-
-        function triggerAddPhotoVisible(vehicle_id) {
-            let find = "#vehicle-photos";
-
-            if (vehicle_id) {
-                find += "-" + vehicle_id;
+            // Verifica o valor inicial do select ao carregar a view blade
+            var initialTypeAd = $('#type_ad').data('type-ad');
+            if (initialTypeAd == 'Interno') {
+                $('#show-personal-data').show();
+                $('#show-personal-data-label').show();
+                $('#company-fields').show();
             }
+        });
 
-            let qtd_photos = $(find).find(".photo-container").length;
+        function validationMandatoryFields() {
+            let invalidField = '';
 
-            if (qtd_photos >= 5) {
-                $(find).parent().find(".add-vehicle-photo-container").hide();
+            const adType = document.getElementById('type_ad').value;
+            const isInternal = (adType === 'Interno');
+
+            let name = $("#name").val();
+            let dateStart = $("#date_begin").val();
+            let dateFinish = $("#date_finish").val();
+            let quantity = $("#quantity").val();
+            let value = $("#value").val();
+            let description = $("#description").val();
+            let imageFile = $('#btn-toggle-picture')[0];
+
+            if (isInternal && !$("#show-personal-data").prop('checked')) {
+                $("#email").prop('required', true);
+                $("#whatsapp-cellphone").prop('required', true);
+                $("#fixed-phone").prop('required', true);
+                $("#business-activity").prop('required', true);
+                $("#company-name").prop('required', true);
+                $("#cnpj").prop('required', true);
+
+                var email = $("#email").val();
+                var whatsappcellphone = $("#whatsapp-cellphone").val();
+                var fixedphone = $("#fixed-phone").val();
+                var businessactivity = $("#business-activity").val();
+                var companyname = $("#company-name").val();
+                var cnpj = $("#cnpj").val();
+
             } else {
-                $(find).parent().find(".add-vehicle-photo-container").show();
+                // remove atributo required e deixa os valores vazios
+                $("#email").prop('required', false).val('');
+                $("#whatsapp-cellphone").prop('required', false).val('');
+                $("#fixed-phone").prop('required', false).val('');
+                $("#business-activity").prop('required', false).val('');
+                $("#company-name").prop('required', false).val('');
+                $("#cnpj").prop('required', false).val('');
+            }
+
+            if (isInternal && !$("#show-personal-data").prop('checked')) {
+                if (adType.trim() == '') {
+                    invalidField = 'Tipo de anúncio';
+                } else if (dateStart.trim() == '') {
+                    invalidField = 'Data início';
+                } else if (dateFinish.trim() == '') {
+                    invalidField = 'Data término';
+                } else if (quantity.trim() == '') {
+                    invalidField = 'Quantidade';
+                } else if (name.trim() == '') {
+                    invalidField = 'Nome';
+                } else if (description.trim() == '') {
+                    invalidField = 'Descrição';
+                } else if (value.trim() == '') {
+                    invalidField = 'Valor';
+                } else if (cnpj.trim() == '') {
+                    invalidField = 'CNPJ';
+                } else if (companyname.trim() == '') {
+                    invalidField = 'Nome da empresa';
+                } else if (businessactivity.trim() == '') {
+                    invalidField = 'Ramo da empresa';
+                } else if (fixedphone.trim() == '') {
+                    invalidField = 'Telefone Fixo';
+                } else if (whatsappcellphone.trim() == '') {
+                    invalidField = 'Celular';
+                } else if (email.trim() == '') {
+                    invalidField = 'Email';
+                } else if (imageFile.files.length === 0 || imageFile.files.defaultValue === "") {
+                    invalidField = 'É necessário pelo menos uma foto';
+                }
+            } else {
+                if (adType.trim() == '') {
+                    invalidField = 'Tipo de anúncio';
+                } else if (dateStart.trim() == '') {
+                    invalidField = 'Data início';
+                } else if (dateFinish.trim() == '') {
+                    invalidField = 'Data término';
+                } else if (quantity.trim() == '') {
+                    invalidField = 'Quantidade';
+                } else if (name.trim() == '') {
+                    invalidField = 'Nome';
+                } else if (description.trim() == '') {
+                    invalidField = 'Descrição';
+                } else if (value.trim() == '') {
+                    invalidField = 'Valor';
+                } else if (imageFile.files.length === 0 || imageFile.files.defaultValue === "") {
+                    invalidField = 'É necessário pelo menos uma foto';
+                }
+            }
+            if ($("#sponsor_radio_type").is(":visible") && $("#sponsor_type").val().trim() == '') {
+                invalidField = 'Selecione um patrocinador';
+            } else if ($("#partner_radio_type").is(":visible") && $("#partner_type").val().trim() == '') {
+                invalidField = 'Selecione um parceiro';
+            }
+
+            if (invalidField !== '') {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'Campo inválido: ' + invalidField,
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+                return false;
+            } else {
+                return true;
             }
         }
 
-        function populateAddPhotos() {
-            $("#add-photos-inputs").find("input").remove();
-
-            Object.keys(photo_without_vehicle).forEach(function(key) {
-                var add_photo = photo_without_vehicle[key];
-
-                $("#add-photos-inputs").append(`<input type="hidden" name="vehicle[add_photo][]" value="` +
-                    add_photo + `" >`);
-            });
-        }
-
-        function changeResidentialAddress() {
-            return changeAddress('home');
-        }
-
-        function changeCommercialAddress() {
-            return changeAddress('commercial');
-        }
-
-        function changeAddress(prefix) {
-            if ($("#" + prefix + "_address_zip_code").val()) {
-                $("#address_zip_code").val($("#" + prefix + "_address_zip_code").val()).change().valid();
-                $("#address_state").val($("#" + prefix + "_address_state").val()).change().valid();
-                $("#address_city").val($("#" + prefix + "_address_city").val()).change().valid();
-                $("#address_neighborhood").val($("#" + prefix + "_address_neighborhood").val()).change().valid();
-                $("#address_street").val($("#" + prefix + "_address_street_address").val()).change().valid();
-                $("#address_number").val($("#" + prefix + "_address_number").val()).change().valid();
-                $("#address_complement").val($("#" + prefix + "_address_complement").val()).change().valid();
-
-                $("#address_state").selectpicker('refresh');
-            }
-
-            $('#address-modal').modal('show');
-            $("#address-modal").find('#address_prefix').val(prefix);
-        }
-
-        function findAddressByCep() {
-            let cep = $("#address_zip_code").val();
-
-            if (cep.length < 9) {
+        $('#finishButton').on('click', function() {
+            if (!validationMandatoryFields()) {
                 return false;
             }
+        });
 
-            setLoadingCep(true);
+        $("#value").on("input", function() {
+            $(this).mask('#.###.##0,00', {
+                reverse: true
+            });
+        });
 
-            $.ajax({
-                method: 'GET',
-                url: "/api/service/cep/find/" + cep,
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-            }).then((response) => {
-                if (response.status == 'success') {
-                    let data = response.data;
+        $("#cnpj").mask("00.000.000/0000-00");
 
-                    $("#address_state").val(data.state_initials);
-                    $("#address_state").selectpicker('refresh');
-                    $("#address_state").valid();
+        $("#name").on("input", function() {
+            $(this).val($(this).val().replace(/[^a-zA-ZÀ-ú\s]/g, ''));
+        });
 
-                    $("#address_city").val(data.city);
-                    $("#address_city").change();
-                    $("#address_city").valid();
+        $("#business-activity").on("input", function() {
+            var regex = /[^a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]/g;
+            $(this).val($(this).val().replace(regex, ''));
+        });
 
-                    $("#address_neighborhood").val(data.neighborhood);
-                    $("#address_neighborhood").change();
-                    $("#address_neighborhood").valid();
+        var adType = document.getElementById("type_ad");
 
-                    $("#address_street").val(data.street_address);
-                    $("#address_street").change();
-                    $("#address_street").valid();
+        adType.addEventListener("change", function() {
+            var typeRadioButtons = document.querySelectorAll('input[type="radio"][name="type"]');
+            if (adType.value === "Externo") {
+                for (var i = 0; i < typeRadioButtons.length; i++) {
+                    typeRadioButtons[i].setAttribute("required", "");
+                }
+            } else {
+                for (var i = 0; i < typeRadioButtons.length; i++) {
+                    typeRadioButtons[i].removeAttribute("required");
+                }
+            }
+        });
 
-                    if (data.complement) {
-                        $("#address_complement").val(data.complement);
-                        $("#address_complement").change();
-                    }
+        $("#date_begin").on("input", function() {
+            if ($(this).val().length > 10) {
+                $(this).val($(this).val().slice(0, 10));
+            }
+        });
 
-                    setTimeout(function() {
-                        $("#address_number").focus();
-                    }, 20);
+        $("#date_finish").on("input", function() {
+            if ($(this).val().length > 10) {
+                $(this).val($(this).val().slice(0, 10));
+            }
+        });
+
+        function validateDates() {
+            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
+            var dateFinish = $('#date_finish').val().split('/').reverse().join('-');
+
+            if (new Date(dateFinish) < new Date(dateBegin)) {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'A data de término não pode ser anterior à data de início',
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+
+                $('#date_finish').val('');
+            } else if (new Date(dateBegin) > new Date(dateFinish)) {
+                swal.fire({
+                    title: 'Atenção',
+                    text: 'A data de início não pode ser posterior à data de término',
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+
+                $('#date_begin').val('');
+            }
+        }
+
+        $('#date_begin, #date_finish').on('blur', function() {
+            var dateBegin = $('#date_begin').val().split('/').reverse().join('-');
+            var dateFinish = $('#date_finish').val().split('/').reverse().join('-');
+
+            if (dateBegin && dateFinish) {
+                if (new Date(dateFinish) < new Date(dateBegin)) {
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'A data de término não pode ser anterior à data de início',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+
+                    $('#date_finish').val('');
+                } else if (new Date(dateBegin) > new Date(dateFinish)) {
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'A data de início não pode ser posterior à data de término',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
+
+                    $('#date_begin').val('');
+                }
+            }
+        });
+
+        $('select#type_ad').on('change', function() {
+            if ($(this).val() === 'Externo') {
+                $('.share').show();
+            } else {
+                $('.share').hide();
+            }
+        });
+
+        $('#sponsor_radio_type, #partner_radio_type').hide();
+        $('.share').hide();
+
+        $('input[name="type"]').on('click', function() {
+            $('#sponsor_radio_type, #partner_radio_type').hide();
+
+            if ($('#sponsor').is(':checked')) {
+                $('#sponsor_radio_type').show();
+                $('#partner_radio_type').hide();
+
+                $('#sponsor_type').attr('required', 'required');
+                $('#partner_type').removeAttr('required');
+
+                $('#sponsor_type').val('');
+
+                // remove a opção selecionada do #partner_type e redefine o valor do select
+                $('#partner_type').find('option:selected').removeAttr('selected');
+                $('#partner_type').val('').selectpicker('refresh');
+            } else if ($('#partner').is(':checked')) {
+                $('#partner_radio_type').show();
+                $('#sponsor_radio_type').hide();
+
+                $('#partner_type').attr('required', 'required');
+                $('#sponsor_type').removeAttr('required');
+
+                $('#partner_type').val('');
+
+                // remove a opção selecionada do #sponsor_type e redefine o valor do select
+                $('#sponsor_type').find('option:selected').removeAttr('selected');
+                $('#sponsor_type').val('').selectpicker('refresh');
+            }
+        });
+
+        $('#sponsor_radio_type').show();
+
+        const coverImg = document.getElementById('cover-img');
+        const toggleBtn = document.getElementById('btn-toggle-picture');
+        const removeBtn = document.getElementById('btn-remove-picture');
+
+        function togglePicturePreview() {
+            const previewSrc = coverImg.getAttribute('src');
+            if (previewSrc) {
+                coverImg.setAttribute('src', '');
+                removeBtn.style.display = 'none';
+                toggleBtn.classList.remove('btn-remove-picture');
+                toggleBtn.classList.add('btn-add-picture');
+            } else {
+                coverImg.setAttribute('src', URL.createObjectURL(this.files[0]));
+                removeBtn.style.display = 'inline-block';
+                toggleBtn.classList.remove('btn-add-picture');
+                toggleBtn.classList.add('btn-remove-picture');
+            }
+        }
+
+        removeBtn.addEventListener('click', togglePicturePreview);
+
+        $(document).ready(function() {
+            $("#type_ad").change(function() {
+                if ($(this).val() === "Interno") {
+                    $("#show-personal-data").show();
+                    $("#show-personal-data-label").show();
+                    $("#company-fields").show();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .attr('required', true);
+                    $('#show-personal-data').prop('checked', false);
+                    $('.share').hide();
+                    swal.fire({
+                        title: 'Atenção',
+                        text: 'Será cobrado uma tarifa de R$ ' + (typeof $value !==
+                                "undefined" ?
+                                $value : '0') +
+                            ',00 por este anúncio!',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
+                    });
                 } else {
-                    $("#address_state").val('');
-                    $("#address_state").selectpicker('refresh');
-                    $("#address_state").valid();
-
-                    $("#address_city").val('').change().valid();
-                    $("#address_neighborhood").val('').change().valid();
-                    $("#address_street").val('').change().valid();
-
-                    $(".col-cep-not-found").fadeIn(200);
+                    $('.share').show();
+                    $("#show-personal-data").hide();
+                    $("#show-personal-data-label").hide();
+                    $("#company-fields").hide();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .removeAttr('required');
+                    $('#show-personal-data').prop('checked', false);
                 }
-
-                setLoadingCep(false);
-            }).catch((err) => {
-                setLoadingCep(false);
-
-                $(".col-cep-not-found").fadeIn(200);
-            });
-        }
-
-        function saveAddress() {
-            $("#form_address").submit();
-        }
-
-        function setLoadingCep(loading) {
-            if (loading) {
-                $(".col-loading").fadeIn(250);
-                $(".col-cep-not-found").fadeOut(100);
-            } else {
-                $(".col-loading").fadeOut(200);
-            }
-
-            $("#address_state").prop('disabled', loading);
-            $("#address_city").prop('disabled', loading);
-            $("#address_neighborhood").prop('disabled', loading);
-            $("#address_street").prop('disabled', loading);
-            $("#address_number").prop('disabled', loading);
-            $("#address_complement").prop('disabled', loading);
-
-            $("#address_state").selectpicker('refresh');
-        }
-
-        function generateAddressesResume(address_prefix, with_prefix) {
-            let address_resume = with_prefix ? $("#" + address_prefix + "_address_street_address").val() : $(
-                "#address_street").val();
-
-            if (with_prefix) {
-                if ($("#" + address_prefix + "_address_number").val()) {
-                    address_resume += ", " + $("#" + address_prefix + "_address_number").val();
-                }
-
-                if ($("#" + address_prefix + "_address_complement").val()) {
-                    address_resume += ", " + $("#" + address_prefix + "_address_complement").val();
-                }
-
-                address_resume += " - " + $("#" + address_prefix + "_address_neighborhood").val();
-                address_resume += " - " + $("#" + address_prefix + "_address_city").val();
-                address_resume += "/" + $("#" + address_prefix + "_address_state").val();
-            } else {
-                if ($("#address_number").val()) {
-                    address_resume += ", " + $("#address_number").val();
-                }
-
-                if ($("#address_complement").val()) {
-                    address_resume += ", " + $("#address_complement").val();
-                }
-
-                address_resume += " - " + $("#address_neighborhood").val();
-                address_resume += " - " + $("#address_city").val();
-                address_resume += "/" + $("#address_state").val();
-            }
-
-            $("#" + address_prefix + "_address_input").val(address_resume).change();
-        }
-
-        $(function() {
-            $('.thumbnail').viewbox();
-
-            $("#address-modal").on('shown.bs.modal', function() {
-                $("#address_zip_code").focus();
             });
 
-            $("#address-modal").on('hidden.bs.modal', function() {
-                $("#form_address")[0].reset();
-                $("#form_address").find(".selectpicker").selectpicker('refresh');
-            });
-
-            @if ($home_address)
-                generateAddressesResume('home', true);
-            @endif
-
-            @if ($commercial_address)
-                generateAddressesResume('commercial', true);
-            @endif
-
-            $("#form_address").validate({
-                rules: {
-                    address_zip_code: "required",
-                    address_state: "required",
-                    address_city: "required",
-                    address_neighborhood: "required",
-                    address_street: "required"
-                },
-                submitHandler: function(form) {
-                    // Save the address
-                    const address_prefix = $("#address_prefix").val();
-
-                    $("#" + address_prefix + "_address_zip_code").val($("#address_zip_code").val());
-                    $("#" + address_prefix + "_address_state").val($("#address_state").val());
-                    $("#" + address_prefix + "_address_city").val($("#address_city").val());
-                    $("#" + address_prefix + "_address_neighborhood").val($("#address_neighborhood")
-                        .val());
-                    $("#" + address_prefix + "_address_street_address").val($("#address_street").val());
-                    $("#" + address_prefix + "_address_number").val($("#address_number").val());
-                    $("#" + address_prefix + "_address_complement").val($("#address_complement").val());
-
-                    generateAddressesResume(address_prefix);
-
-                    $("#" + address_prefix + "-address-add-div").hide();
-                    $("#" + address_prefix + "-address-change-div").show();
-
-                    $("#address-modal").modal('hide');
-
-                    return false;
+            $('#show-personal-data').click(function() {
+                if ($(this).is(':checked')) {
+                    $("#company-fields").hide();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .removeAttr('required');
+                } else {
+                    $("#company-fields").show();
+                    $('#email, #cnpj, #company-name, #business-activity, #fixed-phone, #whatsapp-cellphone')
+                        .attr('required', true);
                 }
             });
         });
+
+        const selectOption = document.querySelector("#type_ad");
+        const modal = document.querySelector("#modal");
+
+        function formatCNPJ(cnpjInput) {
+            let cnpj = cnpjInput.value.replace(/\D/g, '');
+
+            cnpjInput.value = cnpj.slice(0, 2) + '.' + cnpj.slice(2, 5) + '.' + cnpj.slice(5, 8) + '/' + cnpj.slice(
+                    8, 12) +
+                '-' + cnpj.slice(12);
+        }
+
+        function limitCharacters(input) {
+            let cnpj = input.value;
+            let maxLength = 18;
+
+            if (cnpj.length > maxLength) {
+                cnpj = cnpj.substr(0, maxLength);
+                input.value = cnpj;
+            }
+        }
+
+        function formatPhone(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 9) {
+                input.value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 4) + '-' + value.substr(6, 4);
+            }
+        }
+
+        function formatCellphone(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 9) {
+                input.value = '(' + value.substr(0, 2) + ') ' + value.substr(2, 5) + '-' + value.substr(7, 4);
+            }
+        }
     </script>
+@endsection
+
+@section('style')
+    <style>
+        .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+            overflow: hidden;
+            text-transform: initial;
+        }
+
+        .preview-image {
+            width: 157px !important;
+            height: 110px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 1px 4px 0 rgb(0 0 0 / 14%) !important;
+            object-fit: cover;
+        }
+
+        .btn.btn-just-icon i,
+        .navbar .navbar-nav>li>a.btn.btn-just-icon i {
+            width: unset;
+        }
+
+        .datepicker table tr td {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .datepicker .day {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .datepicker table tr td.active.active {
+            background-color: #f44336 !important;
+            border-color: #f44336 !important;
+        }
+
+        .datepicker table tr td.active.active,
+        .datepicker table tr td.active.highlighted.active,
+        .datepicker table tr td.active.highlighted:active,
+        .datepicker table tr td.active:active {
+            background-color: #f44336 !important;
+            border-color: #f44336 !important;
+        }
+
+        .datepicker table tr td.active.active.focus,
+        .datepicker table tr td.active.active:focus,
+        .datepicker table tr td.active.active:hover,
+        .datepicker table tr td.active.highlighted.active.focus,
+        .datepicker table tr td.active.highlighted.active:focus,
+        .datepicker table tr td.active.highlighted.active:hover,
+        .datepicker table tr td.active.highlighted:active.focus,
+        .datepicker table tr td.active.highlighted:active:focus,
+        .datepicker table tr td.active.highlighted:active:hover,
+        .datepicker table tr td.active:active.focus,
+        .datepicker table tr td.active:active:focus,
+        .datepicker table tr td.active:active:hover {
+            background-color: #F44336 !important;
+            border-color: #F44336 !important;
+        }
+
+        .datepicker table tr td span.active.active,
+        .datepicker table tr td span.active.disabled.active,
+        .datepicker table tr td span.active.disabled:active,
+        .datepicker table tr td span.active.disabled:hover.active,
+        .datepicker table tr td span.active.disabled:hover:active,
+        .datepicker table tr td span.active:active,
+        .datepicker table tr td span.active:hover.active,
+        .datepicker table tr td span.active:hover:active {
+            color: #fff;
+            background-color: #f44336 !important;
+            border-color: #f44336 !important;
+        }
+
+        .datepicker table tr td.active {
+            background-color: #f44336 !important;
+            border-color: #f44336 !important;
+        }
+
+        .datepicker table tr td.active,
+        .datepicker table tr td.active.highlighted {
+            background-color: #f44336 !important;
+            border-color: #f44336 !important;
+        }
+
+        .bootstrap-datetimepicker-widget {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .bootstrap-datetimepicker-widget table td {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .bootstrap-datetimepicker-widget table.table-condensed tr>td {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .day {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .preview-container {
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            flex-direction: column-reverse;
+        }
+
+        .share {
+            margin-top: 20px;
+        }
+
+        #images-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            gap: 25px;
+            padding: 10px 0 20px 20px;
+            margin-top: 10px !important;
+        }
+
+        .file-cover {
+            visibility: hidden !important;
+        }
+
+        .cover-img {
+            max-width: 300px !important;
+        }
+
+        .add_files {
+            padding-left: 10px;
+            margin-left: 20px;
+        }
+
+        .images-upload {
+            margin-left: 5px;
+        }
+
+        .text-danger {
+            color: #f44336;
+        }
+
+        .card {
+            width: 100% !important;
+        }
+
+        .btn,
+        .navbar .navbar-nav>li>a.btn {
+            border: none;
+            border-radius: 3px;
+            position: relative;
+            padding: 12px 30px;
+            margin: 10px 1px;
+            font-size: 14px !important;
+            font-weight: 400;
+            text-transform: capitalize !important;
+            letter-spacing: 0;
+            will-change: box-shadow, transform;
+            transition: box-shadow 0.2s cubic-bezier(0.4, 0, 1, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .remove-btn {
+            border: none;
+            background-color: transparent;
+            margin-bottom: 3px;
+            margin-right: -7px;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+    </style>
 @endsection
