@@ -1,0 +1,79 @@
+  function uploadVehiclePhoto(vehicle_id) {
+            let photo = $("#add_vehicle_photo_" + vehicle_id).val();
+
+            if (photo) {
+                let data = new FormData();
+
+                data.append('photo', $('#add_vehicle_photo_' + vehicle_id)[0].files[0]);
+
+                showLoading();
+
+                $.ajax({
+                    method: 'POST',
+                    url: "/api/vehicles/" + vehicle_id + "/photo/upload",
+                    headers: {
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    data: data,
+                    dataType: 'JSON',
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                }).then(function(response) {
+                    if (response && response.status == 'success') {
+                        let data = response.data;
+
+                        $("#vehicle-photos-" + vehicle_id).prepend(`
+                            <div class="photo-container" id="photo-` + data.id + `">
+                                <a href="` + data.photo + `" class="thumbnail">
+                                    <img src="` + data.photo +
+                            `" alt="" class="user-vehicle-photo">
+                                </a>
+                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removeVehiclePhoto(` +
+                            vehicle_id + `, ` + data.id + `)">Remover foto</button>
+                            </div>
+                        `);
+                        $("#vehicle-photos2-" + vehicle_id).prepend(`
+                            <div class="photo-container" id="photo-` + data.id + `">
+                                <a href="` + data.photo + `" class="thumbnail">
+                                    <img src="` + data.photo +
+                            `" alt="" class="user-vehicle-photo">
+                                </a>
+                                <button class="btn btn-primary btn-simple btn-sm btn-remove-photo " type="button" onclick="removeVehiclePhoto(` +
+                            vehicle_id + `, ` + data.id + `)">Remover foto</button>
+                            </div>
+                        `);
+
+                        triggerAddPhotoVisible(vehicle_id);
+                        hideLoading();
+                    } else {
+                        hideLoading();
+
+                        let error = "Ocorreu um erro";
+
+                        if (response && response.message) {
+                            error = response.message;
+                        }
+
+                        showError(error);
+                    }
+                }).catch(function(err) {
+                    hideLoading();
+
+                    console.log("Erro:", err);
+                    showError("Ops, ocorreu um erro: " + err);
+                })
+            }
+            // Adicionar a nova foto à seção de fotos do veículo atual
+            $("#vehicle-photos2-" + vehicle_id).prepend(`
+                    <div class="photo-container" id="photo-${data.id}">
+                        <a href="${data.photo}" class="thumbnail">
+                            <img src="${data.photo}" alt="" class="user-vehicle-photo">
+                        </a>
+                        <button class="btn btn-primary btn-simple btn-sm btn-remove-photo" type="button" onclick="removeVehiclePhoto(${vehicle_id}, ${data.id})">Remover foto</button>
+                    </div>
+                `);
+
+            // Atualizar a visibilidade do botão Adicionar Foto
+            triggerAddPhotoVisible(vehicle_id);
+        }
