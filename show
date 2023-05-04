@@ -1,0 +1,141 @@
+<div class="tab-pane" id="vehicles">
+    {{-- <div class="row">
+        <div class="col-xs-10 col-xs-offset-1 margin-bottom-30">
+            <div class="panel panel-danger">
+                <div class="panel-heading align-center">
+                    @lang('general.title-under-development')
+                </div>
+                <div class="panel-body align-center">
+                    @lang('general.message-under-development')
+                </div>
+            </div>
+        </div>
+    </div> --}}
+    <div class="row pull-right margin-bottom-20">
+        <div class="col-sm-12">
+            <button class="btn btn-primary" onclick="showVehicleModal()" type="button">@lang('vehicles.list-vehicles.add-vehicle-btn')</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="table" id="vehicles-table">
+                <div class="row vehicle-table-title">
+                    <div class="col-sm-2 text-center">@lang('vehicles.list-vehicles.label-carplate')</div>
+                    <div class="col-sm-5">@lang('vehicles.list-vehicles.label-model')</div>
+                    <div class="col-sm-3">@lang('vehicles.list-vehicles.label-color')</div>
+                    <div class="col-sm-2" style="min-width: 110px !important"></div>
+                </div>
+
+                {{-- Line to copy --}}
+                <div class="row vehicle-table-line dont-remove" data-vehicle-id="-1" style="display: none">
+                    <div class="col-sm-2 text-center col-carplate">Car Plate</div>
+                    <div class="col-sm-5 col-model">
+                        <img class="car-model-picture-inside" src="{{ asset('images/icons/editar-imagem.png') }}"
+                            alt="">
+                        <span class="car-model-text">{{-- Car model --}}@lang('general.uninformed')</span>
+                    </div>
+                    <div class="col-sm-3 col-color">
+                        <span class="color-box" style="background-color: transparent"></span>
+                        <div class="color-text">{{-- Car color --}}@lang('general.uninformed')</div>
+                    </div>
+                    <div class="col-sm-2 col-actions" style="min-width: 110px !important">
+                        <button type="button" class="btn btn-primary btn-simple btn-sm btn-edit-vehicle"
+                            data-original-title="@lang('general.edit')">
+                            <i class="material-icons">edit</i>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-simple btn-sm btn-remove-vehicle"
+                            data-original-title="@lang('general.remove')">
+                            <i class="material-icons">close</i>
+                        </button>
+                    </div>
+
+
+                </div>
+
+                @foreach ($user['vehicles'] as $vehicle)
+                    <div class="row vehicle-table-line" data-vehicle-id="{{ $vehicle['id'] }}">
+                        <div class="col-sm-2 text-center col-carplate">
+                            {{ !empty($vehicle['carplate']) ? $vehicle['carplate_formatted'] : '-' }}</div>
+                        <div class="col-sm-5 col-model">
+                            @if (array_key_exists('car_model', $vehicle) && !empty($vehicle['car_model']))
+                                <span
+                                    class="car-model-text">{{ /* $vehicle['car_model']['car_brand']['name'] . " " . */ $vehicle['car_model']['name'] }}</span>
+                            @else
+                                <span class="car-model-text">{{-- Car model --}}@lang('general.uninformed')</span>
+                            @endif
+                        </div>
+                        <div class="col-sm-3 col-color">
+                            @if (array_key_exists('car_color', $vehicle) && !empty($vehicle['car_color']))
+                                <span class="color-box"
+                                    style="background-color: {{ $vehicle['car_color']['value'] }};"></span>
+                                <div class="color-text">{{ $vehicle['car_color']['name'] }}</div>
+                            @else
+                                <span class="color-box" style="background-color: transparent"></span>
+                                <div class="color-text">@lang('general.uninformed')</div>
+                            @endif
+                        </div>
+                        <div class="col-sm-2 col-actions" style="min-width: 110px !important">
+                            <button type="button" class="btn btn-primary btn-simple btn-sm btn-edit-vehicle"
+                                onclick="showVehicleModal({{ $vehicle['id'] }})"
+                                data-original-title="@lang('general.edit')">
+                                <i class="material-icons">edit</i>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-simple btn-sm btn-remove-vehicle"
+                                onclick="removeVehicle({{ $vehicle['id'] }})" data-original-title="@lang('general.remove')">
+                                <i class="material-icons">close</i>
+                            </button>
+                        </div>
+
+                        <div class="row vehicle-photos">
+                            <div class="col-sm-12 add-vehicle-photo-container"
+                                @if (count($vehicle['photos']) >= 5) style="display: none" @endif>
+                                <input type="file" name="add_vehicle_photo" class="add_vehicle_photo"
+                                    id="add_vehicle_photo_{{ $vehicle['id'] }}" accept="image/*"
+                                    onchange="uploadVehiclePhoto({{ $vehicle['id'] }})">
+                                <button class="btn btn-primary btn-simple btn-sm btn-add-vehicle-photo" type="button"
+                                    onclick="$('#add_vehicle_photo_{{ $vehicle['id'] }}').click()">@lang('vehicles.add-picture')</button>
+                            </div>
+
+                            <div class="col-sm-12 vehicle-photos-rows" id="vehicle-photos-{{ $vehicle['id'] }}">
+                                @foreach ($vehicle['photos'] as $photo)
+                                    @php
+                                        $url = $photo['photo'] ? $photo['photo'] : asset('default-car-picture.png');
+                                        if (strpos($url, 'https://4clubes.s3.sa-east-1.amazonaws.com/') === false) {
+                                            $url = 'https://4clubes.s3.sa-east-1.amazonaws.com/' . $url;
+                                        }
+                                    @endphp
+                                    <div class="photo-container" id="photo-{{ $photo['id'] }}">
+                                        <a href="{{ $url }}" class="thumbnail">
+                                            <img src="{{ $url }}" alt="" class="user-vehicle-photo">
+                                        </a>
+                                        <button class="btn btn-primary btn-simple btn-sm btn-remove-photo "
+                                            type="button"
+                                            onclick="removeVehiclePhoto({{ $vehicle['id'] }}, {{ $photo['id'] }})" style="margin-bottom: 3px;
+                                            margin-left: 13rem; position:absolute; margin-top: -113px">X</button>
+                                    </div>
+                                @endforeach
+
+                                {{-- <a href="#" class="thumbnail add-vehicle-thumbnail">
+                                <input type="file" name="add_vehicle_photo" id="add_vehicle_photo" accept="image/*" onchange="uploadVehiclePhoto({{ $vehicle['id'] }})">
+                                <img src="{{ asset("images/icons/add-picture-icon.png") }}" class="user-vehicle-photo img-add-picture">
+                                <button class="btn btn-primary btn-simple btn-sm"></button>
+                            </a> --}}
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+
+
+                @if (count($user['vehicles']) < 1)
+                    <div class="row no-vehicle">
+                        <td colspan="3">
+                            @lang('vehicles.list-vehicles.no-vehicle')
+                        </td>
+                    </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+</div>
